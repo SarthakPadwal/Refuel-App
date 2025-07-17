@@ -50,13 +50,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
           fit: BoxFit.contain,
         ),
       ),
-      
     );
   }
 }
 
 // ----------------------------
-// 2. Onboarding Screen
+// 2. Onboarding Screen (Updated)
 // ----------------------------
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
@@ -77,73 +76,87 @@ class OnboardingScreen extends StatelessWidget {
             ),
           ),
           Padding(
-           padding: const EdgeInsets.fromLTRB(20, 20, 24, 36),
-  child: Column(
-    children: [
-      Image.asset(
-        'assets/images/Brand.png', 
-        // width: 200,
-        // fit: BoxFit.contain,
-      ),
-      const SizedBox(height: 15),
-      const Text(
-        'A Map That helps you find\nFuel Station',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          fontSize: 23,
-          color: Color(0xFF383838),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      const SizedBox(height: 36),
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AuthScreen()),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF725E),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(40),
+            padding: const EdgeInsets.fromLTRB(20, 20, 24, 36),
+            child: Column(
+              children: [
+                Image.asset(
+                  'assets/images/Brand.png',
+                    width: MediaQuery.of(context).size.width * 0.9,
+                   height: 120,
+                   fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  'A Map That helps you find\nFuel Station',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 23,
+                    color: Color(0xFF383838),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 36),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AuthScreen(),
+                          settings: const RouteSettings(arguments: false),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFF725E),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(40),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      'SIGN UP',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Already have an account? ',
+                      style: TextStyle(fontSize: 15, color: Color(0xFF7B7B7B)),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AuthScreen(),
+                            settings: const RouteSettings(arguments: true),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'SIGN IN',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFFAF0505),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            padding: const EdgeInsets.symmetric(vertical: 16),
           ),
-          child: const Text(
-            'SIGN UP',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-      const SizedBox(height: 16),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
-          Text(
-            'Already have an account? ',
-            style: TextStyle(fontSize: 15, color: Color(0xFF7B7B7B)),
-          ),
-          Text(
-            'SIGN IN',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFFAF0505),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    ],
-  ),
-),
-
         ],
       ),
     );
@@ -151,7 +164,7 @@ class OnboardingScreen extends StatelessWidget {
 }
 
 // ----------------------------
-// 3. Auth Screen (Signin / Signup)
+// 3. Auth Screen (Updated)
 // ----------------------------
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -162,6 +175,19 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool isSignIn = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is bool) {
+        setState(() {
+          isSignIn = args;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +241,9 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: isSignIn ? const Color.fromARGB(255, 255, 189, 180) : Colors.transparent,
+                  color: isSignIn
+                      ? const Color.fromARGB(255, 255, 189, 180)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: const Center(
@@ -231,7 +259,9 @@ class _AuthScreenState extends State<AuthScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: !isSignIn ? const Color.fromARGB(255, 255, 189, 180) : Colors.transparent,
+                  color: !isSignIn
+                      ? const Color.fromARGB(255, 255, 189, 180)
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: const Center(
@@ -260,11 +290,13 @@ class _AuthScreenState extends State<AuthScreen> {
               Icon(Icons.login_outlined, size: 18, color: Color(0xFF383838)),
               SizedBox(width: 8),
               Text("Enter Details",
-                  style: TextStyle(  fontSize: 15, color: Color(0xFF3C3C3C), fontWeight: FontWeight.w500)),
+                  style: TextStyle(
+                      fontSize: 15,
+                      color: Color(0xFF3C3C3C),
+                      fontWeight: FontWeight.w500)),
             ],
           ),
           const SizedBox(height: 18),
-
           if (isSignIn) ...[
             signInTextField(
               "Email or Phone No.",
@@ -283,10 +315,9 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           ],
-
           if (!isSignIn) ...[
             signUpTextField(
-              "Email or Phone No.",
+              "Name ",
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -294,13 +325,13 @@ class _AuthScreenState extends State<AuthScreen> {
             ),
             const SizedBox(height: 12),
             signUpTextField(
-              "Password....",
+              "Email or Phone No.",
               obscureText: true,
-             borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(2),
             ),
             const SizedBox(height: 12),
             signUpTextField(
-              "Confirm Password....",
+              "Password....",
               obscureText: true,
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(20),
@@ -308,14 +339,12 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
           ],
-
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {},
-              style: 
-              ElevatedButton.styleFrom(
+              style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromARGB(255, 255, 189, 180),
                 foregroundColor: const Color(0xFFAF0505),
                 shape: RoundedRectangleBorder(
@@ -330,12 +359,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                      )
-                      ),
+                      )),
                   const SizedBox(width: 8),
-                  const Icon(Icons.login ,
-                  size:20,
-                  ),
+                  const Icon(Icons.login, size: 20),
                 ],
               ),
             ),
@@ -345,7 +371,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-    Widget buildSocialIcons() {
+  Widget buildSocialIcons() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -355,30 +381,17 @@ class _AuthScreenState extends State<AuthScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: const [
-          FaIcon(
-            FontAwesomeIcons.facebook,
-            color: Color.fromARGB(255, 45, 45, 45),
-            size: 30,
-          ),
-          FaIcon(
-            FontAwesomeIcons.google,
-            color: Color.fromARGB(255, 45, 45, 45),
-            size: 30,
-          ),
-          FaIcon(
-            FontAwesomeIcons.twitter,
-            color: Color.fromARGB(255, 45, 45, 45),
-            size: 30,
-          ),
+          FaIcon(FontAwesomeIcons.facebook,
+              color: Color.fromARGB(255, 45, 45, 45), size: 30),
+          FaIcon(FontAwesomeIcons.google,
+              color: Color.fromARGB(255, 45, 45, 45), size: 30),
+          FaIcon(FontAwesomeIcons.twitter,
+              color: Color.fromARGB(255, 45, 45, 45), size: 30),
         ],
       ),
     );
   }
 
-
-  // ----------------------------
-  // Sign In TextField
-  // ----------------------------
   Widget signInTextField(
     String hint, {
     bool obscureText = false,
@@ -391,7 +404,8 @@ class _AuthScreenState extends State<AuthScreen> {
         fillColor: const Color(0xFFE9E9E9),
         hintText: hint,
         hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: borderRadius,
           borderSide: BorderSide.none,
@@ -400,9 +414,6 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // ----------------------------
-  // Sign Up TextField
-  // ----------------------------
   Widget signUpTextField(
     String hint, {
     bool obscureText = false,
@@ -415,7 +426,8 @@ class _AuthScreenState extends State<AuthScreen> {
         fillColor: const Color(0xFFE9E9E9),
         hintText: hint,
         hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: borderRadius,
           borderSide: BorderSide.none,
@@ -424,5 +436,3 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 }
-
-
