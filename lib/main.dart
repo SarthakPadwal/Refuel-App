@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-void main() => runApp(RefuelApp());
+import 'screens/home_screen.dart';
+import 'services/api_service.dart';
+// main.dart
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(RefuelApp());
+}
 
 class RefuelApp extends StatelessWidget {
   @override
@@ -14,8 +24,32 @@ class RefuelApp extends StatelessWidget {
         fontFamily: 'Montserrat',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const WelcomeScreen(),
+      home: FutureBuilder<bool>(
+        future: _initializeApp(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return snapshot.data == true ? const HomeScreen() : const WelcomeScreen();
+          }
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        },
+      ),
+      routes: {
+        '/home': (context) => const HomeScreen(),
+      },
     );
+  }
+
+  Future<bool> _initializeApp() async {
+    try {
+      // Add small delay to ensure proper initialization
+      await Future.delayed(const Duration(milliseconds: 300));
+      return await ApiService.isLoggedIn();
+    } catch (e) {
+      print('Initialization error: $e');
+      return false;
+    }
   }
 }
 
@@ -81,9 +115,9 @@ class OnboardingScreen extends StatelessWidget {
               children: [
                 Image.asset(
                   'assets/images/Brand.png',
-                    width: MediaQuery.of(context).size.width * 0.9,
-                   height: 120,
-                   fit: BoxFit.contain,
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  height: 120,
+                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 15),
                 const Text(
@@ -164,7 +198,7 @@ class OnboardingScreen extends StatelessWidget {
 }
 
 // ----------------------------
-// 3. Auth Screen (Updated)
+// 3. Auth Screen (Updated with API integration)
 // ----------------------------
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -175,6 +209,11 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool isSignIn = true;
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -190,36 +229,91 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      if (isSignIn) {
+        // Login logic
+        final response = await ApiService.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        if (response.statusCode == 200) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Login failed: ${response.body}')),
+          );
+        }
+      } else {
+        // Register logic
+        final response = await ApiService.register(
+          _nameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+
+        if (response.statusCode == 201) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Registration failed: ${response.body}')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Column(
-            children: [
-              Text(
-                isSignIn ? "Welcome Back!" : "Create your account",
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFAF0505),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Text(
+                  isSignIn ? "Welcome Back!" : "Create your account",
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFAF0505),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              buildToggleTabs(),
-              const SizedBox(height: 30),
-              buildFormCard(),
-              if (isSignIn)
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Text("Forgot Password?",
-                      style: TextStyle(color: Color(0xFF7B7B7B))),
-                ),
-              const SizedBox(height: 24),
-              const Text("OR", style: TextStyle(color: Color(0xFF7B7B7B))),
-              const SizedBox(height: 12),
-              buildSocialIcons(),
-            ],
+                const SizedBox(height: 24),
+                buildToggleTabs(),
+                const SizedBox(height: 30),
+                buildFormCard(),
+                if (isSignIn)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 12),
+                    child: Text("Forgot Password?",
+                        style: TextStyle(color: Color(0xFF7B7B7B))),
+                  ),
+                const SizedBox(height: 24),
+                const Text("OR", style: TextStyle(color: Color(0xFF7B7B7B))),
+                const SizedBox(height: 12),
+                buildSocialIcons(),
+              ],
+            ),
           ),
         ),
       ),
@@ -298,52 +392,145 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           const SizedBox(height: 18),
           if (isSignIn) ...[
-            signInTextField(
-              "Email or Phone No.",
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+            TextFormField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFE9E9E9),
+                hintText: "Email or Phone No.",
+                hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
-            signInTextField(
-              "Password....",
+            TextFormField(
+              controller: _passwordController,
               obscureText: true,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFE9E9E9),
+                hintText: "Password....",
+                hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your password';
+                }
+                if (value.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
+                return null;
+              },
             ),
           ],
           if (!isSignIn) ...[
-            signUpTextField(
-              "Name ",
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+            TextFormField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFE9E9E9),
+                hintText: "Name",
+                hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your name';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
-            signUpTextField(
-              "Email or Phone No.",
-              obscureText: true,
-              borderRadius: BorderRadius.circular(2),
+            TextFormField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFE9E9E9),
+                hintText: "Email or Phone No.",
+                hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(0),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!value.contains('@') || !value.contains('.')) {
+                  return 'Please enter a valid email';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
-            signUpTextField(
-              "Password....",
+            TextFormField(
+              controller: _passwordController,
               obscureText: true,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(20),
-                bottomRight: Radius.circular(20),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFE9E9E9),
+                hintText: "Password....",
+                hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your password';
+                }
+                if (value.length < 6) {
+                  return 'Password must be at least 6 characters';
+                }
+                return null;
+              },
             ),
           ],
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: _isLoading ? null : _submitForm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromARGB(255, 255, 189, 180),
                 foregroundColor: const Color(0xFFAF0505),
@@ -352,7 +539,9 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              child: Row(
+              child: _isLoading
+                  ? const CircularProgressIndicator()
+                  : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(isSignIn ? "Sign In" : "Sign Up",
@@ -388,50 +577,6 @@ class _AuthScreenState extends State<AuthScreen> {
           FaIcon(FontAwesomeIcons.twitter,
               color: Color.fromARGB(255, 45, 45, 45), size: 30),
         ],
-      ),
-    );
-  }
-
-  Widget signInTextField(
-    String hint, {
-    bool obscureText = false,
-    required BorderRadius borderRadius,
-  }) {
-    return TextField(
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xFFE9E9E9),
-        hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: borderRadius,
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget signUpTextField(
-    String hint, {
-    bool obscureText = false,
-    required BorderRadius borderRadius,
-  }) {
-    return TextField(
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xFFE9E9E9),
-        hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF7B7B7B)),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: borderRadius,
-          borderSide: BorderSide.none,
-        ),
       ),
     );
   }
