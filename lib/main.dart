@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:async';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
-
+import 'dart:async';
 import 'screens/home_screen.dart';
+import 'screens/map_screen.dart';
 import 'services/api_service.dart';
-// main.dart
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(RefuelApp());
+  runApp(const RefuelApp());
 }
 
 class RefuelApp extends StatelessWidget {
+  const RefuelApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -24,32 +23,37 @@ class RefuelApp extends StatelessWidget {
         fontFamily: 'Montserrat',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: FutureBuilder<bool>(
-        future: _initializeApp(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return snapshot.data == true ? const HomeScreen() : const WelcomeScreen();
-          }
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        },
-      ),
+      initialRoute: '/',
       routes: {
+        '/': (context) => const AppInitializer(),        // ✅ check login
         '/home': (context) => const HomeScreen(),
+        '/map': (context) => const MapScreen(),
+        // '/saved': (context) => const SavedScreen(),
+        // '/profile': (context) => const ProfileScreen(),
       },
     );
   }
+}
 
-  Future<bool> _initializeApp() async {
-    try {
-      // Add small delay to ensure proper initialization
-      await Future.delayed(const Duration(milliseconds: 300));
-      return await ApiService.isLoggedIn();
-    } catch (e) {
-      print('Initialization error: $e');
-      return false;
-    }
+// ✅ This runs first and decides which screen to show
+class AppInitializer extends StatelessWidget {
+  const AppInitializer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: ApiService.isLoggedIn(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final isLoggedIn = snapshot.data ?? false;
+        return isLoggedIn ? const HomeScreen() : const WelcomeScreen();
+      },
+    );
   }
 }
 

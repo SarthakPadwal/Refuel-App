@@ -5,18 +5,37 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
 
 class MapScreen extends StatefulWidget {
+  const MapScreen({super.key});
+
   @override
-  _MapScreenState createState() => _MapScreenState();
+  State<MapScreen> createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? _mapController;
+  LatLng? _mapCenter;
   Position? _currentPosition;
   final Set<Marker> _markers = {};
   final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA';
   Circle? _circle;
   bool _isLoading = true;
   int _selectedIndex = 1;
+  int _selectedServiceIndex = 0;
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<String> _serviceTypes = [
+    "petrol pump",
+    "cng pump",
+    "electric vehicle charging station",
+    "car repair"
+  ];
+
+  final List<String> _serviceLabels = [
+    "Petrol / Diesel",
+    "CNG",
+    "EV",
+    "Mechanic"
+  ];
 
   @override
   void initState() {
@@ -47,11 +66,13 @@ class _MapScreenState extends State<MapScreen> {
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      _mapCenter = LatLng(position.latitude, position.longitude);
+
       setState(() {
         _currentPosition = position;
         _circle = Circle(
           circleId: const CircleId('user_radius'),
-          center: LatLng(position.latitude, position.longitude),
+          center: _mapCenter!,
           radius: 3000,
           strokeColor: Colors.red,
           strokeWidth: 2,
@@ -59,7 +80,7 @@ class _MapScreenState extends State<MapScreen> {
         );
       });
 
-      await _loadNearbyPetrolPumps(position);
+      await _loadNearbyPlaces(_serviceTypes[_selectedServiceIndex]);
     } catch (e) {
       debugPrint('❌ Location error: $e');
     } finally {
@@ -69,17 +90,31 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Future<void> _loadNearbyPetrolPumps(Position position) async {
+  Future<void> _loadNearbyPlaces(String placeType) async {
+    if (_mapCenter == null) return;
     final places = GoogleMapsPlaces(apiKey: _apiKey);
     final result = await places.searchNearbyWithRadius(
-      Location(lat: position.latitude, lng: position.longitude),
+      Location(lat: _mapCenter!.latitude, lng: _mapCenter!.longitude),
       3000,
-      type: "gas_station",
+      keyword: placeType,
     );
 
-    if (result.status == "OK") {
-      debugPrint("🟢 Found ${result.results.length} petrol pumps.");
-      final newMarkers = result.results.map((place) {
+    setState(() {
+      _markers.clear();
+    });
+
+    if (result.status == "OK" && result.results.isNotEmpty) {
+      final newMarkers = result.results.where((place) {
+        final lat = place.geometry!.location.lat;
+        final lng = place.geometry!.location.lng;
+        final distance = Geolocator.distanceBetween(
+          _mapCenter!.latitude,
+          _mapCenter!.longitude,
+          lat,
+          lng,
+        );
+        return distance <= 3000;
+      }).map((place) {
         return Marker(
           markerId: MarkerId(place.placeId),
           position: LatLng(
@@ -95,7 +130,7 @@ class _MapScreenState extends State<MapScreen> {
         _markers.addAll(newMarkers);
       });
     } else {
-      debugPrint("⚠️ Places API error: ${result.errorMessage}");
+      debugPrint("⚠️ No nearby results found for $placeType");
     }
   }
 
@@ -119,25 +154,94 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  Widget buildFilterButton(String label, int index) {
+    bool isSelected = _selectedServiceIndex == index;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: ElevatedButton(
+        onPressed: () {
+          setState(() => _selectedServiceIndex = index);
+          _loadNearbyPlaces(_serviceTypes[index]);
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isSelected ? Colors.orange : Colors.black,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        child: Text(label, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _isLoading || _currentPosition == null
           ? const Center(child: CircularProgressIndicator())
-          : GoogleMap(
-        onMapCreated: (controller) => _mapController = controller,
-        initialCameraPosition: CameraPosition(
-          target: LatLng(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
+          : Column(
+        children: [
+          const SizedBox(height: 40),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search...',
+                      fillColor: Colors.grey[200],
+                      filled: true,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          zoom: 13.5,
-        ),
-        myLocationEnabled: true,
-        myLocationButtonEnabled: true,
-        markers: _markers,
-        circles: _circle != null ? {_circle!} : {},
-        mapType: MapType.normal,
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: List.generate(
+                _serviceLabels.length,
+                    (index) => buildFilterButton(_serviceLabels[index], index),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: GoogleMap(
+              onMapCreated: (controller) => _mapController = controller,
+              initialCameraPosition: CameraPosition(
+                target: _mapCenter!,
+                zoom: 13.5,
+              ),
+              onCameraMove: (position) {
+                _mapCenter = position.target;
+                setState(() {
+                  _circle = Circle(
+                    circleId: const CircleId('user_radius'),
+                    center: _mapCenter!,
+                    radius: 3000,
+                    strokeColor: Colors.red,
+                    strokeWidth: 2,
+                    fillColor: Colors.red.withOpacity(0.1),
+                  );
+                });
+              },
+              onCameraIdle: () => _loadNearbyPlaces(_serviceTypes[_selectedServiceIndex]),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              markers: _markers,
+              circles: _circle != null ? {_circle!} : {},
+              mapType: MapType.normal,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
