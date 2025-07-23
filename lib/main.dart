@@ -5,6 +5,9 @@ import 'dart:async';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
 import 'services/api_service.dart';
+import 'screens/profile_screen.dart';
+import 'screens/saved_screen.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,8 +31,9 @@ class RefuelApp extends StatelessWidget {
         '/': (context) => const AppInitializer(),        // ✅ check login
         '/home': (context) => const HomeScreen(),
         '/map': (context) => const MapScreen(),
-        // '/saved': (context) => const SavedScreen(),
-        // '/profile': (context) => const ProfileScreen(),
+        '/saved': (context) => const SavedScreen(),
+        '/profile': (context) => const ProfileScreen(),
+        '/login': (context) => const AuthScreen(),
       },
     );
   }
