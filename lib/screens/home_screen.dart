@@ -6,6 +6,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
+import 'package:dotted_line/dotted_line.dart';
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -175,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TextField(
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.search),
-                    hintText: "Search",
+                    hintText: "Search...",
                     filled: true,
                     fillColor: Color(0xFFE9E9E9),
                     border: OutlineInputBorder(
@@ -244,31 +246,47 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_on_outlined),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            label: 'Saved',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
+  bottomNavigationBar: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 1),
+      child: DottedLine(
+        dashLength: 7,
+        dashGapLength: 4,
+        lineThickness: 1.5,
+        dashColor: Color(0xFFFF725E), // Your orange color
       ),
+    ),
+    BottomNavigationBar(
+      backgroundColor: Colors.white,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.orange,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map_outlined),
+          label: 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bookmark_border),
+          label: 'Saved',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
+      ],
+    ),
+  ],
+),
+
     );
   }
 
@@ -281,15 +299,15 @@ class _HomeScreenState extends State<HomeScreen> {
           margin: const EdgeInsets.all(6),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.orange.shade100 : Colors.white,
+            color: isSelected ?Color(0xFFFFD0C9): Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isSelected ? Colors.orange : Color(0xFFE9E9E9)),
+            border: Border.all(color: isSelected ?  Color(0xFFAF0505) : Color(0xFFE9E9E9)),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 30, color: isSelected ? Colors.orange : iconColor),
+              Icon(icon, size: 30, color: isSelected ? Color(0xFFAF0505) : iconColor),
               const SizedBox(height: 10),
-              Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? Colors.orange : Colors.black)),
+              Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ?  Color(0xFFAF0505): Colors.black)),
             ],
           ),
         ),

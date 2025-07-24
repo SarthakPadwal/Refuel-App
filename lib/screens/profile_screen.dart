@@ -4,6 +4,7 @@ import '../services/api_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:dotted_line/dotted_line.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -235,35 +236,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFAF0505),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark_border), label: 'Saved'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
+      bottomNavigationBar: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 1),
+      child: DottedLine(
+        dashLength: 7,
+        dashGapLength: 4,
+        lineThickness: 1.5,
+        dashColor: Color(0xFFFF725E), // Your orange color
       ),
+    ),
+    BottomNavigationBar(
+      backgroundColor: Colors.white,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.orange,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map_outlined),
+          label: 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bookmark_border),
+          label: 'Saved',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
+      ],
+    ),
+  ],
+),
     );
   }
 
-  Widget buildIconText(IconData icon, String label) {
-    return Column(
-      children: [
-        const CircleAvatar(
-          radius: 22,
-          backgroundColor: Colors.white,
-          child: Icon(Icons.favorite, size: 20, color: Color(0xFFAF0505)),
-        ),
-        const SizedBox(height: 4),
-        Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.black)),
-      ],
-    );
-  }
+ Widget buildIconText(IconData icon, String label) {
+  return Column(
+    children: [
+      CircleAvatar(
+        radius: 22,
+        backgroundColor: Colors.white,
+        child: Icon(icon, size: 20, color: const Color(0xFFAF0505)),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 12, color: Colors.black),
+      ),
+    ],
+  );
+}
+
 
   Widget buildSettingTile(IconData icon, String title) {
     return Column(

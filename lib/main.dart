@@ -289,46 +289,61 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _isLoading = false);
     }
   }
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              Text(
+                isSignIn ? "Welcome Back!" : "Create your account",
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFFAF0505),
+                ),
+              ),
+              const SizedBox(height: 24),
+              buildToggleTabs(),
+              const SizedBox(height: 30),
+              buildFormCard(),
+              if (isSignIn)
+                const Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: Text("Forgot Password?",
+                      style: TextStyle(color: Color(0xFF7B7B7B))),
+                ),
+              const SizedBox(height: 24),
+              const Text("OR", style: TextStyle(color: Color(0xFF7B7B7B))),
+              const SizedBox(height: 12),
+              buildSocialIcons(),
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Text(
-                  isSignIn ? "Welcome Back!" : "Create your account",
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFFAF0505),
+              // ✅ New "Skip" link added here
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushReplacementNamed(context, '/home');
+                },
+                child: const Text(
+                  "Skip",
+                  style: TextStyle(
+                    color: Color(0xFF7B7B7B),
+                    fontWeight: FontWeight.w600,
+                    decoration: TextDecoration.underline,
                   ),
                 ),
-                const SizedBox(height: 24),
-                buildToggleTabs(),
-                const SizedBox(height: 30),
-                buildFormCard(),
-                if (isSignIn)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 12),
-                    child: Text("Forgot Password?",
-                        style: TextStyle(color: Color(0xFF7B7B7B))),
-                  ),
-                const SizedBox(height: 24),
-                const Text("OR", style: TextStyle(color: Color(0xFF7B7B7B))),
-                const SizedBox(height: 12),
-                buildSocialIcons(),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget buildToggleTabs() {
     return Container(

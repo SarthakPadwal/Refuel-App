@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
+import 'package:dotted_line/dotted_line.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -178,12 +179,18 @@ class _MapScreenState extends State<MapScreen> {
           _loadNearbyPlaces(_serviceTypes[index]);
         },
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? Colors.orange : Colors.black,
+          backgroundColor: isSelected ? const Color(0xFFFFD0C9) : const Color(0xFFE9E9E9),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
-        child: Text(label, style: const TextStyle(color: Colors.white)),
+        child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: isSelected ? const Color(0xFFAF0505) : Colors.black,
+        ),
       ),
-    );
+    ),
+  );
   }
 
   @override
@@ -205,6 +212,7 @@ class _MapScreenState extends State<MapScreen> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.search),
                           hintText: 'Search...',
                           fillColor: Colors.grey[200],
                           filled: true,
@@ -262,31 +270,46 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_on_outlined),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            label: 'Saved',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
+        bottomNavigationBar: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 1),
+      child: DottedLine(
+        dashLength: 7,
+        dashGapLength: 4,
+        lineThickness: 1.5,
+        dashColor: Color(0xFFFF725E), // Your orange color
       ),
+    ),
+    BottomNavigationBar(
+      backgroundColor: Colors.white,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.orange,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map_outlined),
+          label: 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bookmark_border),
+          label: 'Saved',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
+      ],
+    ),
+  ],
+),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
+import 'package:dotted_line/dotted_line.dart';
 
 class SearchAndFilterScreen extends StatefulWidget {
   const SearchAndFilterScreen({super.key});
@@ -12,23 +13,29 @@ class SearchAndFilterScreen extends StatefulWidget {
 class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
   String _searchQuery = "";
   int _selectedFilterIndex = 0;
+  int _selectedIndex = 0;
 
-  void _onItemTapped(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/home');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/map');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/saved');
-        break;
-      case 3:
-        Navigator.pushReplacementNamed(context, '/profile');
-        break;
-    }
+
+void _onItemTapped(int index) {
+  setState(() {
+    _selectedIndex = index;
+  });
+
+  switch (index) {
+    case 0:
+      Navigator.pushReplacementNamed(context, '/home');
+      break;
+    case 1:
+      Navigator.pushReplacementNamed(context, '/map');
+      break;
+    case 2:
+      Navigator.pushReplacementNamed(context, '/saved');
+      break;
+    case 3:
+      Navigator.pushReplacementNamed(context, '/profile');
+      break;
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +72,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                   child: Row(
                     children: const [
                       Icon(Icons.location_pin, color: Color(0xFFAF0505), size: 16),
-                      SizedBox(width: 6),
+                      SizedBox(width: 6, height: 35),
                       Text("GPM, Bandra", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFAF0505))),
                     ],
                   ),
@@ -80,7 +87,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 prefixIcon: const Icon(Icons.search),
-                hintText: "Search",
+                hintText: "Search...",
                 filled: true,
                 fillColor: const Color(0xFFE9E9E9),
                 border: OutlineInputBorder(
@@ -158,19 +165,45 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
         ),
       ),
 
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) => _onItemTapped(context, index),
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFFAF0505),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.location_on_outlined), label: 'Map'),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark_border), label: 'Saved'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
+      bottomNavigationBar: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 1),
+      child: DottedLine(
+        dashLength: 7,
+        dashGapLength: 4,
+        lineThickness: 1.5,
+        dashColor: Color(0xFFFF725E), // Your orange color
+      ),
+    ),
+    BottomNavigationBar(
+      backgroundColor: Colors.white,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.orange,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map_outlined),
+          label: 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bookmark_border),
+          label: 'Saved',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
+      ],
+    ),
+  ],
       ),
     );
   }
@@ -188,10 +221,10 @@ class FilterButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFFFFE5E0) : const Color(0xFFE9E9E9),
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           text,

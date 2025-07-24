@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dotted_line/dotted_line.dart';
 
 class SavedScreen extends StatefulWidget {
   const SavedScreen({super.key});
@@ -74,7 +75,7 @@ class _SavedScreenState extends State<SavedScreen> {
               child: TextField(
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: 'Search',
+                  hintText: 'Search...',
                   filled: true,
                   fillColor: const Color(0xFFE9E9E9),
                   border: OutlineInputBorder(
@@ -123,32 +124,46 @@ class _SavedScreenState extends State<SavedScreen> {
         ),
       ),
 
-      // 🔻 Bottom Navigation Bar (Same as Map)
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.orange,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_on_outlined),
-            label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            label: 'Saved',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
-        ],
+       bottomNavigationBar: Column(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 1),
+      child: DottedLine(
+        dashLength: 7,
+        dashGapLength: 4,
+        lineThickness: 1.5,
+        dashColor: Color(0xFFFF725E), // Your orange color
       ),
+    ),
+    BottomNavigationBar(
+      backgroundColor: Colors.white,
+      currentIndex: _selectedIndex,
+      onTap: _onItemTapped,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.orange,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          label: 'Home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.map_outlined),
+          label: 'Map',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bookmark_border),
+          label: 'Saved',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          label: 'Profile',
+        ),
+      ],
+    ),
+  ],
+),
     );
   }
 
@@ -157,7 +172,7 @@ class _SavedScreenState extends State<SavedScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: isActive ? const Color(0xFFFFD0C9) : const Color(0xFFE9E9E9),
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(10),
       ),
       child: Text(
         label,
