@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
-import 'package:dotted_line/dotted_line.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
+import '../services/pump_service.dart';
+import '../models/petrol_pump_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,13 +16,13 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-  int _selectedServiceIndex = 0; // Default to Petrol/Diesel
+  int _selectedServiceIndex = 0;
   Position? _currentPosition;
   late GoogleMapController _mapController;
   final Set<Marker> _markers = {};
-  final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA'; // Replace with your actual key
+  final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA';
   Circle? _circle;
-  final double _radius = 3000; // 3km radius
+  final double _radius = 3000;
 
   @override
   void initState() {
@@ -49,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     setState(() => _currentPosition = position);
-    _loadNearbyPlaces("petrol pump", 0); // Automatically load petrol stations
+    _loadNearbyPlaces("petrol pump", 0);
   }
 
   Future<void> _loadNearbyPlaces(String placeType, int index) async {
@@ -75,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     if (result.status == "OK" && result.results.isNotEmpty) {
+      final List<PetrolPump> nearbyPumps = [];
       final newMarkers = result.results.where((place) {
         final lat = place.geometry!.location.lat;
         final lng = place.geometry!.location.lng;
@@ -84,7 +86,17 @@ class _HomeScreenState extends State<HomeScreen> {
           lat,
           lng,
         );
-        return distance <= _radius;
+        if (distance <= _radius) {
+          nearbyPumps.add(
+            PetrolPump(
+              name: place.name,
+              location: LatLng(lat, lng),
+              distance: distance,
+            ),
+          );
+          return true;
+        }
+        return false;
       }).map((place) {
         return Marker(
           markerId: MarkerId(place.placeId),
@@ -100,8 +112,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _markers.addAll(newMarkers);
       });
-    } else {
-      debugPrint("No nearby results found for $placeType");
+
+      PumpService().setPumps(nearbyPumps);
     }
   }
 
@@ -154,15 +166,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 5),
-            TextField(
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: "Search",
-                filled: true,
-                fillColor: Color(0xFFE9E9E9),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
+            GestureDetector(
+              onTap: () {
+                Navigator.pushNamed(context, '/search');
+              },
+              child: AbsorbPointer(
+                child: TextField(
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: "Search",
+                    filled: true,
+                    fillColor: Color(0xFFE9E9E9),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
               ),
             ),

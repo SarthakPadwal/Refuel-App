@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
+import '../services/pump_service.dart';
+import '../models/petrol_pump_model.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -16,7 +18,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _mapCenter;
   Position? _currentPosition;
   final Set<Marker> _markers = {};
-  final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA';
+  final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA'; // Replace with your actual key
   Circle? _circle;
   bool _isLoading = true;
   int _selectedIndex = 1;
@@ -104,7 +106,10 @@ class _MapScreenState extends State<MapScreen> {
     });
 
     if (result.status == "OK" && result.results.isNotEmpty) {
-      final newMarkers = result.results.where((place) {
+      final newMarkers = <Marker>{};
+      final newPumps = <PetrolPump>[];
+
+      for (var place in result.results) {
         final lat = place.geometry!.location.lat;
         final lng = place.geometry!.location.lng;
         final distance = Geolocator.distanceBetween(
@@ -113,18 +118,26 @@ class _MapScreenState extends State<MapScreen> {
           lat,
           lng,
         );
-        return distance <= 3000;
-      }).map((place) {
-        return Marker(
-          markerId: MarkerId(place.placeId),
-          position: LatLng(
-            place.geometry!.location.lat,
-            place.geometry!.location.lng,
-          ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: InfoWindow(title: place.name),
-        );
-      }).toSet();
+
+        if (distance <= 3000) {
+          newMarkers.add(Marker(
+            markerId: MarkerId(place.placeId),
+            position: LatLng(lat, lng),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            infoWindow: InfoWindow(title: place.name),
+          ));
+
+          newPumps.add(
+            PetrolPump(
+              name: place.name ?? 'Unknown',
+              location: LatLng(lat, lng),
+              distance: distance,
+            ),
+          );
+        }
+      }
+
+      PumpService().setPumps(newPumps);
 
       setState(() {
         _markers.addAll(newMarkers);
@@ -185,15 +198,20 @@ class _MapScreenState extends State<MapScreen> {
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search...',
-                      fillColor: Colors.grey[200],
-                      filled: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/search'),
+                    child: AbsorbPointer(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search...',
+                          fillColor: Colors.grey[200],
+                          filled: true,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
                       ),
                     ),
                   ),

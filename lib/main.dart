@@ -7,6 +7,7 @@ import 'screens/map_screen.dart';
 import 'services/api_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/saved_screen.dart';
+import 'screens/search_screen.dart';
 
 
 void main() async {
@@ -28,7 +29,8 @@ class RefuelApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => const AppInitializer(),        // ✅ check login
+        '/': (context) => const AppInitializer(),
+        '/search': (context) => const SearchAndFilterScreen(),
         '/home': (context) => const HomeScreen(),
         '/map': (context) => const MapScreen(),
         '/saved': (context) => const SavedScreen(),
