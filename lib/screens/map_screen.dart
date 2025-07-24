@@ -18,7 +18,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _mapCenter;
   Position? _currentPosition;
   final Set<Marker> _markers = {};
-  final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA'; // Replace with your actual key
+  final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA';
   Circle? _circle;
   bool _isLoading = true;
   int _selectedIndex = 1;
@@ -132,6 +132,7 @@ class _MapScreenState extends State<MapScreen> {
               name: place.name ?? 'Unknown',
               location: LatLng(lat, lng),
               distance: distance,
+              rating: place.rating?.toDouble(),
             ),
           );
         }

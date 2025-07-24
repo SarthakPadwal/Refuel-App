@@ -92,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
               name: place.name,
               location: LatLng(lat, lng),
               distance: distance,
+              rating: place.rating?.toDouble(),
             ),
           );
           return true;

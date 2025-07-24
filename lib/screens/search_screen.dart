@@ -11,6 +11,7 @@ class SearchAndFilterScreen extends StatefulWidget {
 
 class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
   String _searchQuery = "";
+  int _selectedFilterIndex = 0;
 
   void _onItemTapped(BuildContext context, int index) {
     switch (index) {
@@ -32,9 +33,17 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
   @override
   Widget build(BuildContext context) {
     final allPumps = PumpService().pumps;
-    final filteredPumps = _searchQuery.isEmpty
+
+    List<PetrolPump> filteredPumps = _searchQuery.isEmpty
         ? allPumps
         : allPumps.where((pump) => pump.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+
+    // Apply selected filter
+    if (_selectedFilterIndex == 0) {
+      filteredPumps.sort((a, b) => a.distance.compareTo(b.distance));
+    } else if (_selectedFilterIndex == 2) {
+      filteredPumps.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -42,14 +51,11 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           children: [
+            // Header row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Image.asset(
-                  'assets/images/Brand.png',
-                  width: 230,
-                  height: 90,
-                ),
+                Image.asset('assets/images/Brand.png', width: 230, height: 90),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
@@ -69,6 +75,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
 
             const SizedBox(height: 5),
 
+            // Search Bar
             TextField(
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -81,42 +88,27 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                   borderSide: BorderSide.none,
                 ),
               ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
+              onChanged: (value) => setState(() => _searchQuery = value),
             ),
 
             const SizedBox(height: 22),
 
+            // Filter Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                FilterButton(text: 'Nearest Pumps', isActive: true),
-                FilterButton(text: 'Lowest Crowd'),
-                FilterButton(text: 'Highly Rated'),
+              children: [
+                FilterButton(text: 'Nearest Pumps', isActive: _selectedFilterIndex == 0, onTap: () => setState(() => _selectedFilterIndex = 0)),
+                FilterButton(text: 'Lowest Crowd', isActive: _selectedFilterIndex == 1, onTap: () => setState(() => _selectedFilterIndex = 1)),
+                FilterButton(text: 'Highly Rated', isActive: _selectedFilterIndex == 2, onTap: () => setState(() => _selectedFilterIndex = 2)),
               ],
             ),
 
             const SizedBox(height: 15),
-
-            const Divider(
-              color: Color.fromARGB(255, 186, 186, 186),
-              thickness: 1,
-              indent: 16,
-              endIndent: 16,
-            ),
-
+            const Divider(color: Color.fromARGB(255, 186, 186, 186), thickness: 1, indent: 16, endIndent: 16),
             const SizedBox(height: 30),
 
             if (filteredPumps.isEmpty)
-              const Center(
-                child: Text(
-                  "No stations found.",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-              )
+              const Center(child: Text("No stations found.", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)))
             else
               Column(
                 children: filteredPumps.map((pump) {
@@ -134,9 +126,19 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                         const Icon(Icons.location_on, size: 18, color: Colors.black54),
                         const SizedBox(width: 2),
                         Expanded(
-                          child: Text(
-                            pump.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(pump.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              if (pump.rating != null)
+                                Row(
+                                  children: [
+                                    const Icon(Icons.star, color: Colors.orange, size: 16),
+                                    const SizedBox(width: 2),
+                                    Text("${pump.rating!.toStringAsFixed(1)}", style: const TextStyle(fontSize: 13)),
+                                  ],
+                                ),
+                            ],
                           ),
                         ),
                         Text(
@@ -156,6 +158,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
         ),
       ),
 
+      // Bottom Navigation
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 0,
         onTap: (index) => _onItemTapped(context, index),
@@ -176,22 +179,26 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
 class FilterButton extends StatelessWidget {
   final String text;
   final bool isActive;
+  final VoidCallback onTap;
 
-  const FilterButton({super.key, required this.text, this.isActive = false});
+  const FilterButton({super.key, required this.text, required this.isActive, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFFFE5E0) : const Color(0xFFE9E9E9),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isActive ? const Color(0xFFAF0505) : Colors.black,
-          fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFFFE5E0) : const Color(0xFFE9E9E9),
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isActive ? const Color(0xFFAF0505) : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
