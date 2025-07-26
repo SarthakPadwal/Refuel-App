@@ -1,3 +1,4 @@
+import 'package:Refuel/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -7,6 +8,8 @@ import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import 'package:dotted_line/dotted_line.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,19 +54,30 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     setState(() => _currentPosition = position);
+
+    // 🔁 Load initially
     _loadNearbyPlaces("petrol pump", 0);
+
+    // 🔁 Auto-refresh every 2 minutes
+    Timer.periodic(Duration(minutes: 2), (_) {
+      if (_currentPosition != null) {
+        _loadNearbyPlaces("petrol pump", _selectedServiceIndex);
+      }
+    });
   }
 
-  CrowdLevel estimateCrowd(double distance) {
-    // TODO: Replace with traffic+popularTimes logic
-    if (distance < 1000) {
-      return CrowdLevel.red;
-    } else if (distance < 2000) {
-      return CrowdLevel.orange;
-    } else if (distance < 2500) {
-      return CrowdLevel.yellow;
-    } else {
-      return CrowdLevel.green;
+  CrowdLevel _mapCrowdLevelFromString(String level) {
+    switch (level) {
+      case 'green':
+        return CrowdLevel.green;
+      case 'yellow':
+        return CrowdLevel.yellow;
+      case 'orange':
+        return CrowdLevel.orange;
+      case 'red':
+        return CrowdLevel.red;
+      default:
+        return CrowdLevel.unknown;
     }
   }
 
@@ -93,37 +107,46 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result.status == "OK" && result.results.isNotEmpty) {
       final List<PetrolPump> nearbyPumps = [];
 
-      final newMarkers = result.results.where((place) {
+      for (final place in result.results) {
         final lat = place.geometry!.location.lat;
         final lng = place.geometry!.location.lng;
+
         final distance = Geolocator.distanceBetween(
           _currentPosition!.latitude,
           _currentPosition!.longitude,
           lat,
           lng,
         );
+
         if (distance <= _radius) {
-          nearbyPumps.add(
-            PetrolPump(
-              name: place.name,
-              location: LatLng(lat, lng),
-              distance: distance,
-              rating: place.rating?.toDouble(),
-              crowd: estimateCrowd(distance),
-            ),
+          final crowdString = await ApiService.getCrowdLevelMultiDirection(
+            lat: lat,
+            lng: lng,
+            apiKey: _apiKey,
           );
-          return true;
+          print("Crowd string for ${place.name}: $crowdString");
+
+          final pump = PetrolPump(
+            name: place.name,
+            location: LatLng(lat, lng),
+            distance: distance,
+            rating: place.rating?.toDouble(),
+            crowd: _mapCrowdLevelFromString(crowdString),
+          );
+
+          nearbyPumps.add(pump);
         }
-        return false;
-      }).map((place) {
+      }
+
+      final newMarkers = nearbyPumps.map((pump) {
         return Marker(
-          markerId: MarkerId(place.placeId),
-          position: LatLng(
-            place.geometry!.location.lat,
-            place.geometry!.location.lng,
-          ),
+          markerId: MarkerId(pump.name),
+          position: pump.location,
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: InfoWindow(title: place.name),
+          infoWindow: InfoWindow(
+            title: pump.name,
+            snippet: _crowdDescription(pump.crowd!),
+          ),
         );
       }).toSet();
 
@@ -132,6 +155,21 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       PumpService().setPumps(nearbyPumps);
+    }
+  }
+
+  String _crowdDescription(CrowdLevel level) {
+    switch (level) {
+      case CrowdLevel.green:
+        return 'Low crowd';
+      case CrowdLevel.yellow:
+        return 'Moderate crowd';
+      case CrowdLevel.orange:
+        return 'High crowd';
+      case CrowdLevel.red:
+        return 'Very crowded';
+      default:
+        return 'Unknown';
     }
   }
 
@@ -163,7 +201,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           children: [
-            // Brand and location
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -184,9 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               ],
             ),
-
             const SizedBox(height: 5),
-
             GestureDetector(
               onTap: () => Navigator.pushNamed(context, '/search'),
               child: AbsorbPointer(
@@ -204,10 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-
             const SizedBox(height: 22),
-
-            // Filter Buttons
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -233,12 +265,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
             const Text(" Map", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25)),
             const SizedBox(height: 20),
-
-            // Map
             SizedBox(
               height: 250,
               child: GestureDetector(
@@ -268,8 +297,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-
-      // Bottom Navigation
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

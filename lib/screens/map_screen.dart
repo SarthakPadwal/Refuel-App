@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
+import '../services/api_service.dart';
 import 'package:dotted_line/dotted_line.dart';
 
 class MapScreen extends StatefulWidget {
@@ -44,6 +45,21 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _initLocationAndPlaces();
+  }
+
+  CrowdLevel _mapCrowdLevelFromString(String level) {
+    switch (level.toLowerCase()) {
+      case 'green':
+        return CrowdLevel.green;
+      case 'yellow':
+        return CrowdLevel.yellow;
+      case 'orange':
+        return CrowdLevel.orange;
+      case 'red':
+        return CrowdLevel.red;
+      default:
+        return CrowdLevel.unknown;
+    }
   }
 
   Future<void> _initLocationAndPlaces() async {
@@ -121,11 +137,30 @@ class _MapScreenState extends State<MapScreen> {
         );
 
         if (distance <= 3000) {
+          final crowdString = await ApiService.getCrowdLevelMultiDirection(
+            lat: lat,
+            lng: lng,
+            apiKey: _apiKey,
+          );
+
+          final crowdLevel = _mapCrowdLevelFromString(crowdString);
+
           newMarkers.add(Marker(
             markerId: MarkerId(place.placeId),
             position: LatLng(lat, lng),
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-            infoWindow: InfoWindow(title: place.name),
+            infoWindow: InfoWindow(
+              title: place.name,
+              snippet: crowdLevel == CrowdLevel.unknown
+                  ? "Crowd data unavailable"
+                  : crowdLevel == CrowdLevel.green
+                  ? "Low Crowd"
+                  : crowdLevel == CrowdLevel.yellow
+                  ? "Moderate Crowd"
+                  : crowdLevel == CrowdLevel.orange
+                  ? "High Crowd"
+                  : "Very Crowded",
+            ),
           ));
 
           newPumps.add(
@@ -134,6 +169,7 @@ class _MapScreenState extends State<MapScreen> {
               location: LatLng(lat, lng),
               distance: distance,
               rating: place.rating?.toDouble(),
+              crowd: crowdLevel,
             ),
           );
         }
@@ -183,14 +219,14 @@ class _MapScreenState extends State<MapScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
-        label,
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: isSelected ? const Color(0xFFAF0505) : Colors.black,
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isSelected ? const Color(0xFFAF0505) : Colors.black,
+          ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   @override
@@ -270,46 +306,46 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-        bottomNavigationBar: Column(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 1),
-      child: DottedLine(
-        dashLength: 7,
-        dashGapLength: 4,
-        lineThickness: 1.5,
-        dashColor: Color(0xFFFF725E), // Your orange color
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 1),
+            child: DottedLine(
+              dashLength: 7,
+              dashGapLength: 4,
+              lineThickness: 1.5,
+              dashColor: Color(0xFFFF725E),
+            ),
+          ),
+          BottomNavigationBar(
+            backgroundColor: Colors.white,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: Colors.orange,
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_outlined),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map_outlined),
+                label: 'Map',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.bookmark_border),
+                label: 'Saved',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person_outline),
+                label: 'Profile',
+              ),
+            ],
+          ),
+        ],
       ),
-    ),
-    BottomNavigationBar(
-      backgroundColor: Colors.white,
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.orange,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.map_outlined),
-          label: 'Map',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bookmark_border),
-          label: 'Saved',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
-    ),
-  ],
-),
     );
   }
 }

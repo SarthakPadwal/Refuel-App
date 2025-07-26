@@ -1,6 +1,6 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-enum CrowdLevel { green, yellow, orange, red }
+enum CrowdLevel { green, yellow, orange, red , unknown, }
 
 class PetrolPump {
   final String name;
@@ -16,8 +16,6 @@ class PetrolPump {
     this.rating,
     this.crowd,
   });
-
-  // ✅ Fix: This method is now correctly placed and uses 'crowd' instead of 'crowdLevel'
   void setCrowdLevelFromString(String crowdString) {
     switch (crowdString.toLowerCase()) {
       case 'green':
@@ -33,7 +31,9 @@ class PetrolPump {
         crowd = CrowdLevel.red;
         break;
       default:
-        crowd = null;
+        print('Unknown crowd level for string: $crowdString');
+        crowd = CrowdLevel.unknown; // ✅ properly handle unknown cases
     }
   }
+
 }
