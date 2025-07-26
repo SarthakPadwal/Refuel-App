@@ -15,27 +15,41 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
   int _selectedFilterIndex = 0;
   int _selectedIndex = 0;
 
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
 
-void _onItemTapped(int index) {
-  setState(() {
-    _selectedIndex = index;
-  });
-
-  switch (index) {
-    case 0:
-      Navigator.pushReplacementNamed(context, '/home');
-      break;
-    case 1:
-      Navigator.pushReplacementNamed(context, '/map');
-      break;
-    case 2:
-      Navigator.pushReplacementNamed(context, '/saved');
-      break;
-    case 3:
-      Navigator.pushReplacementNamed(context, '/profile');
-      break;
+    switch (index) {
+      case 0:
+        Navigator.pushReplacementNamed(context, '/home');
+        break;
+      case 1:
+        Navigator.pushReplacementNamed(context, '/map');
+        break;
+      case 2:
+        Navigator.pushReplacementNamed(context, '/saved');
+        break;
+      case 3:
+        Navigator.pushReplacementNamed(context, '/profile');
+        break;
+    }
   }
-}
+
+  Icon _getCrowdIcon(CrowdLevel? level) {
+    switch (level) {
+      case CrowdLevel.green:
+        return const Icon(Icons.circle, color: Colors.green, size: 16);
+      case CrowdLevel.yellow:
+        return const Icon(Icons.circle, color: Colors.yellow, size: 16);
+      case CrowdLevel.orange:
+        return const Icon(Icons.circle, color: Colors.orange, size: 16);
+      case CrowdLevel.red:
+        return const Icon(Icons.circle, color: Colors.red, size: 16);
+      default:
+        return const Icon(Icons.help_outline, color: Colors.grey, size: 16);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +57,29 @@ void _onItemTapped(int index) {
 
     List<PetrolPump> filteredPumps = _searchQuery.isEmpty
         ? allPumps
-        : allPumps.where((pump) => pump.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+        : allPumps
+        .where((pump) => pump.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .toList();
 
     // Apply selected filter
     if (_selectedFilterIndex == 0) {
       filteredPumps.sort((a, b) => a.distance.compareTo(b.distance));
+    } else if (_selectedFilterIndex == 1) {
+      filteredPumps.sort((a, b) => (a.crowd?.index ?? 0).compareTo(b.crowd?.index ?? 0));
     } else if (_selectedFilterIndex == 2) {
       filteredPumps.sort((a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0));
+    } else if (_selectedFilterIndex == 3) {
+      filteredPumps.sort((a, b) {
+        double aScore = ((a.crowd?.index ?? 0) * 3.0) + (a.distance / 5000);
+        double bScore = ((b.crowd?.index ?? 0) * 3.0) + (b.distance / 5000);
+        return aScore.compareTo(bScore);
+      });
+    } else if (_selectedFilterIndex == 4) {
+      filteredPumps.sort((a, b) {
+        double aScore = ((a.crowd?.index ?? 0) * 3.0) + (a.distance / 3000) - ((a.rating ?? 0) * 2.0);
+        double bScore = ((b.crowd?.index ?? 0) * 3.0) + (b.distance / 3000) - ((b.rating ?? 0) * 2.0);
+        return aScore.compareTo(bScore);
+      });
     }
 
     return Scaffold(
@@ -58,7 +88,6 @@ void _onItemTapped(int index) {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           children: [
-            // Header row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -79,10 +108,7 @@ void _onItemTapped(int index) {
                 )
               ],
             ),
-
             const SizedBox(height: 5),
-
-            // Search Bar
             TextField(
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -97,17 +123,36 @@ void _onItemTapped(int index) {
               ),
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
-
             const SizedBox(height: 22),
 
-            // Filter Row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                FilterButton(text: 'Nearest Pumps', isActive: _selectedFilterIndex == 0, onTap: () => setState(() => _selectedFilterIndex = 0)),
-                FilterButton(text: 'Lowest Crowd', isActive: _selectedFilterIndex == 1, onTap: () => setState(() => _selectedFilterIndex = 1)),
-                FilterButton(text: 'Highly Rated', isActive: _selectedFilterIndex == 2, onTap: () => setState(() => _selectedFilterIndex = 2)),
-              ],
+            // Filter Row - Scrollable
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilterButton(
+                      text: 'Best',
+                      isActive: _selectedFilterIndex == 4,
+                      onTap: () => setState(() => _selectedFilterIndex = 4)),
+                  const SizedBox(width: 8),
+                  FilterButton(
+                      text: 'Nearest Pumps',
+                      isActive: _selectedFilterIndex == 0,
+                      onTap: () => setState(() => _selectedFilterIndex = 0)),
+                  const SizedBox(width: 8),
+                  FilterButton(
+                      text: 'Lowest Crowd',
+                      isActive: _selectedFilterIndex == 1,
+                      onTap: () => setState(() => _selectedFilterIndex = 1)),
+                  const SizedBox(width: 8),
+                  FilterButton(
+                      text: 'Highly Rated',
+                      isActive: _selectedFilterIndex == 2,
+                      onTap: () => setState(() => _selectedFilterIndex = 2)),
+                  const SizedBox(width: 8),
+
+                ],
+              ),
             ),
 
             const SizedBox(height: 15),
@@ -155,7 +200,7 @@ void _onItemTapped(int index) {
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                         ),
                         const SizedBox(width: 10),
-                        const Icon(Icons.groups, color: Colors.deepOrangeAccent),
+                        _getCrowdIcon(pump.crowd),
                       ],
                     ),
                   );
@@ -164,46 +209,33 @@ void _onItemTapped(int index) {
           ],
         ),
       ),
-
       bottomNavigationBar: Column(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 1),
-      child: DottedLine(
-        dashLength: 7,
-        dashGapLength: 4,
-        lineThickness: 1.5,
-        dashColor: Color(0xFFFF725E), // Your orange color
-      ),
-    ),
-    BottomNavigationBar(
-      backgroundColor: Colors.white,
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.orange,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.map_outlined),
-          label: 'Map',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bookmark_border),
-          label: 'Saved',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
-    ),
-  ],
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 1),
+            child: DottedLine(
+              dashLength: 7,
+              dashGapLength: 4,
+              lineThickness: 1.5,
+              dashColor: Color(0xFFFF725E),
+            ),
+          ),
+          BottomNavigationBar(
+            backgroundColor: Colors.white,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: Colors.orange,
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
+              BottomNavigationBarItem(icon: Icon(Icons.bookmark_border), label: 'Saved'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -214,7 +246,12 @@ class FilterButton extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
-  const FilterButton({super.key, required this.text, required this.isActive, required this.onTap});
+  const FilterButton({
+    super.key,
+    required this.text,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {

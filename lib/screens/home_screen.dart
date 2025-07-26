@@ -8,7 +8,6 @@ import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import 'package:dotted_line/dotted_line.dart';
 
-
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -55,8 +54,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadNearbyPlaces("petrol pump", 0);
   }
 
+  CrowdLevel estimateCrowd(double distance) {
+    // TODO: Replace with traffic+popularTimes logic
+    if (distance < 1000) {
+      return CrowdLevel.red;
+    } else if (distance < 2000) {
+      return CrowdLevel.orange;
+    } else if (distance < 2500) {
+      return CrowdLevel.yellow;
+    } else {
+      return CrowdLevel.green;
+    }
+  }
+
   Future<void> _loadNearbyPlaces(String placeType, int index) async {
     if (_currentPosition == null) return;
+
     final places = GoogleMapsPlaces(apiKey: _apiKey);
     final result = await places.searchNearbyWithRadius(
       Location(lat: _currentPosition!.latitude, lng: _currentPosition!.longitude),
@@ -68,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedServiceIndex = index;
       _markers.clear();
       _circle = Circle(
-        circleId: CircleId("radius_circle"),
+        circleId: const CircleId("radius_circle"),
         center: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
         radius: _radius,
         strokeColor: Colors.red,
@@ -79,6 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result.status == "OK" && result.results.isNotEmpty) {
       final List<PetrolPump> nearbyPumps = [];
+
       final newMarkers = result.results.where((place) {
         final lat = place.geometry!.location.lat;
         final lng = place.geometry!.location.lng;
@@ -95,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
               location: LatLng(lat, lng),
               distance: distance,
               rating: place.rating?.toDouble(),
+              crowd: estimateCrowd(distance),
             ),
           );
           return true;
@@ -148,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           children: [
+            // Brand and location
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -155,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Color(0xFFFFD0C9),
+                    color: const Color(0xFFFFD0C9),
                     borderRadius: BorderRadius.circular(30),
                   ),
                   child: Row(
@@ -168,18 +184,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               ],
             ),
+
             const SizedBox(height: 5),
+
             GestureDetector(
-              onTap: () {
-                Navigator.pushNamed(context, '/search');
-              },
+              onTap: () => Navigator.pushNamed(context, '/search'),
               child: AbsorbPointer(
                 child: TextField(
                   decoration: InputDecoration(
                     prefixIcon: Icon(Icons.search),
                     hintText: "Search...",
                     filled: true,
-                    fillColor: Color(0xFFE9E9E9),
+                    fillColor: const Color(0xFFE9E9E9),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -188,11 +204,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 22),
+
+            // Filter Buttons
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Color(0xFFFFE5E0),
+                color: const Color(0xFFFFE5E0),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [BoxShadow(color: Colors.grey.shade200, blurRadius: 8)],
               ),
@@ -214,9 +233,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 20),
             const Text(" Map", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25)),
             const SizedBox(height: 20),
+
+            // Map
             SizedBox(
               height: 250,
               child: GestureDetector(
@@ -246,47 +268,36 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-  bottomNavigationBar: Column(
-  mainAxisSize: MainAxisSize.min,
-  children: [
-    const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 1),
-      child: DottedLine(
-        dashLength: 7,
-        dashGapLength: 4,
-        lineThickness: 1.5,
-        dashColor: Color(0xFFFF725E), // Your orange color
-      ),
-    ),
-    BottomNavigationBar(
-      backgroundColor: Colors.white,
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      type: BottomNavigationBarType.fixed,
-      selectedItemColor: Colors.orange,
-      unselectedItemColor: Colors.grey,
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.home_outlined),
-          label: 'Home',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.map_outlined),
-          label: 'Map',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.bookmark_border),
-          label: 'Saved',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          label: 'Profile',
-        ),
-      ],
-    ),
-  ],
-),
 
+      // Bottom Navigation
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 1),
+            child: DottedLine(
+              dashLength: 7,
+              dashGapLength: 4,
+              lineThickness: 1.5,
+              dashColor: Color(0xFFFF725E),
+            ),
+          ),
+          BottomNavigationBar(
+            backgroundColor: Colors.white,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: Colors.orange,
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
+              BottomNavigationBarItem(icon: Icon(Icons.bookmark_border), label: 'Saved'),
+              BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -299,15 +310,15 @@ class _HomeScreenState extends State<HomeScreen> {
           margin: const EdgeInsets.all(6),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isSelected ?Color(0xFFFFD0C9): Colors.white,
+            color: isSelected ? const Color(0xFFFFD0C9) : Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: isSelected ?  Color(0xFFAF0505) : Color(0xFFE9E9E9)),
+            border: Border.all(color: isSelected ? const Color(0xFFAF0505) : const Color(0xFFE9E9E9)),
           ),
           child: Column(
             children: [
-              Icon(icon, size: 30, color: isSelected ? Color(0xFFAF0505) : iconColor),
+              Icon(icon, size: 30, color: isSelected ? const Color(0xFFAF0505) : iconColor),
               const SizedBox(height: 10),
-              Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ?  Color(0xFFAF0505): Colors.black)),
+              Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? const Color(0xFFAF0505) : Colors.black)),
             ],
           ),
         ),
