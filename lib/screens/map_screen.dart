@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
+import 'package:geocoding/geocoding.dart' as geo;
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import '../services/api_service.dart';
@@ -60,6 +62,36 @@ class _MapScreenState extends State<MapScreen> {
       default:
         return CrowdLevel.unknown;
     }
+  }
+
+  double _getEstimatedTime(CrowdLevel level) {
+    final random = Random();
+    switch (level) {
+      case CrowdLevel.green:
+        return (5 + random.nextInt(6)).toDouble(); // 5–10
+      case CrowdLevel.yellow:
+        return (15 + random.nextInt(11)).toDouble(); // 15–25
+      case CrowdLevel.orange:
+        return (25 + random.nextInt(11)).toDouble(); // 25–35
+      case CrowdLevel.red:
+        return (40 + random.nextInt(11)).toDouble(); // 40–50
+      case CrowdLevel.unknown:
+      default:
+        return (10 + random.nextInt(6)).toDouble(); // 10–15
+    }
+  }
+
+  Future<String> _getAddressFromLatLng(double lat, double lng) async {
+    try {
+      final placemarks = await geo.placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        return "${place.name}, ${place.locality}, ${place.administrativeArea}";
+      }
+    } catch (e) {
+      debugPrint("❌ Failed to get address: $e");
+    }
+    return "Unknown location";
   }
 
   Future<void> _initLocationAndPlaces() async {
@@ -144,6 +176,7 @@ class _MapScreenState extends State<MapScreen> {
           );
 
           final crowdLevel = _mapCrowdLevelFromString(crowdString);
+          final address = await _getAddressFromLatLng(lat, lng);
 
           newMarkers.add(Marker(
             markerId: MarkerId(place.placeId),
@@ -151,15 +184,7 @@ class _MapScreenState extends State<MapScreen> {
             icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
             infoWindow: InfoWindow(
               title: place.name,
-              snippet: crowdLevel == CrowdLevel.unknown
-                  ? "Crowd data unavailable"
-                  : crowdLevel == CrowdLevel.green
-                  ? "Low Crowd"
-                  : crowdLevel == CrowdLevel.yellow
-                  ? "Moderate Crowd"
-                  : crowdLevel == CrowdLevel.orange
-                  ? "High Crowd"
-                  : "Very Crowded",
+              snippet: address,
             ),
           ));
 
@@ -170,6 +195,17 @@ class _MapScreenState extends State<MapScreen> {
               distance: distance,
               rating: place.rating?.toDouble(),
               crowd: crowdLevel,
+              imageUrl: (place.photos != null && place.photos!.isNotEmpty)
+                  ? "https://maps.googleapis.com/maps/api/place/photo"
+                  "?maxwidth=400"
+                  "&photoreference=${place.photos!.first.photoReference}"
+                  "&key=$_apiKey"
+                  : 'assets/images/station.jpg',
+              status: "Open Now",
+              estimatedTime: _getEstimatedTime(crowdLevel),
+              petrolPrice: 104.77,
+              dieselPrice: 90.03,
+              address: address,
             ),
           );
         }

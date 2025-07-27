@@ -1,21 +1,40 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-enum CrowdLevel { green, yellow, orange, red , unknown, }
+enum CrowdLevel {
+  green,
+  yellow,
+  orange,
+  red,
+  unknown,
+}
 
 class PetrolPump {
   final String name;
+  final String imageUrl;
+  final String status; // e.g., "Open Now" or "Closed"
   final LatLng location;
-  final double distance;
+  final double distance; // in meters
   final double? rating;
+  final double estimatedTime; // in minutes
+  final double petrolPrice;
+  final double dieselPrice;
   CrowdLevel? crowd;
+  final String address;
 
   PetrolPump({
     required this.name,
+    required this.imageUrl,
+    required this.status,
     required this.location,
     required this.distance,
-    this.rating,
+    required this.rating,
+    required this.estimatedTime,
+    required this.petrolPrice,
+    required this.dieselPrice,
     this.crowd,
+    required this.address,
   });
+
   void setCrowdLevelFromString(String crowdString) {
     switch (crowdString.toLowerCase()) {
       case 'green':
@@ -32,8 +51,7 @@ class PetrolPump {
         break;
       default:
         print('Unknown crowd level for string: $crowdString');
-        crowd = CrowdLevel.unknown; // ✅ properly handle unknown cases
+        crowd = CrowdLevel.unknown;
     }
   }
-
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
+import '../screens/petrol_pump_details_screen.dart'; // ✅ Add this import
 import 'package:dotted_line/dotted_line.dart';
-
+//
 class SearchAndFilterScreen extends StatefulWidget {
   const SearchAndFilterScreen({super.key});
 
@@ -58,7 +59,8 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
     List<PetrolPump> filteredPumps = _searchQuery.isEmpty
         ? allPumps
         : allPumps
-        .where((pump) => pump.name.toLowerCase().contains(_searchQuery.toLowerCase()))
+        .where((pump) =>
+        pump.name.toLowerCase().contains(_searchQuery.toLowerCase()))
         .toList();
 
     // Apply selected filter
@@ -130,27 +132,13 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  FilterButton(
-                      text: 'Best',
-                      isActive: _selectedFilterIndex == 4,
-                      onTap: () => setState(() => _selectedFilterIndex = 4)),
+                  FilterButton(text: 'Best', isActive: _selectedFilterIndex == 4, onTap: () => setState(() => _selectedFilterIndex = 4)),
                   const SizedBox(width: 8),
-                  FilterButton(
-                      text: 'Nearest Pumps',
-                      isActive: _selectedFilterIndex == 0,
-                      onTap: () => setState(() => _selectedFilterIndex = 0)),
+                  FilterButton(text: 'Nearest Pumps', isActive: _selectedFilterIndex == 0, onTap: () => setState(() => _selectedFilterIndex = 0)),
                   const SizedBox(width: 8),
-                  FilterButton(
-                      text: 'Lowest Crowd',
-                      isActive: _selectedFilterIndex == 1,
-                      onTap: () => setState(() => _selectedFilterIndex = 1)),
+                  FilterButton(text: 'Lowest Crowd', isActive: _selectedFilterIndex == 1, onTap: () => setState(() => _selectedFilterIndex = 1)),
                   const SizedBox(width: 8),
-                  FilterButton(
-                      text: 'Highly Rated',
-                      isActive: _selectedFilterIndex == 2,
-                      onTap: () => setState(() => _selectedFilterIndex = 2)),
-                  const SizedBox(width: 8),
-
+                  FilterButton(text: 'Highly Rated', isActive: _selectedFilterIndex == 2, onTap: () => setState(() => _selectedFilterIndex = 2)),
                 ],
               ),
             ),
@@ -164,44 +152,54 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
             else
               Column(
                 children: filteredPumps.map((pump) {
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFE5E0),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.local_gas_station_outlined, size: 28, color: Colors.black87),
-                        const SizedBox(width: 10),
-                        const Icon(Icons.location_on, size: 18, color: Colors.black54),
-                        const SizedBox(width: 2),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(pump.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                              if (pump.rating != null)
-                                Row(
-                                  children: [
-                                    const Icon(Icons.star, color: Colors.orange, size: 16),
-                                    const SizedBox(width: 2),
-                                    Text("${pump.rating!.toStringAsFixed(1)}", style: const TextStyle(fontSize: 13)),
-                                  ],
-                                ),
-                            ],
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FuelStationDetailScreen(pump: pump),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFE5E0),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.local_gas_station_outlined, size: 28, color: Colors.black87),
+                          const SizedBox(width: 10),
+                          const Icon(Icons.location_on, size: 18, color: Colors.black54),
+                          const SizedBox(width: 2),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(pump.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                if (pump.rating != null)
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.star, color: Colors.orange, size: 16),
+                                      const SizedBox(width: 2),
+                                      Text("${pump.rating!.toStringAsFixed(1)}", style: const TextStyle(fontSize: 13)),
+                                    ],
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Text(
-                          pump.distance < 1000
-                              ? "${pump.distance.toStringAsFixed(0)} m"
-                              : "${(pump.distance / 1000).toStringAsFixed(1)} km",
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(width: 10),
-                        _getCrowdIcon(pump.crowd),
-                      ],
+                          Text(
+                            pump.distance < 1000
+                                ? "${pump.distance.toStringAsFixed(0)} m"
+                                : "${(pump.distance / 1000).toStringAsFixed(1)} km",
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(width: 10),
+                          _getCrowdIcon(pump.crowd),
+                        ],
+                      ),
                     ),
                   );
                 }).toList(),

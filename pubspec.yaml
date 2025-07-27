@@ -17,6 +17,7 @@ dependencies:
   geolocator: ^11.0.0
   google_maps_webservice: ^0.0.20-nullsafety.5
   dotted_line: ^3.1.0
+  geocoding: ^2.1.0
 
 dev_dependencies:
   flutter_test:

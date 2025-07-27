@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:async';
+import 'dart:math';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import 'package:dotted_line/dotted_line.dart';
-import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:geocoding/geocoding.dart' as geo;
+
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +37,36 @@ class _HomeScreenState extends State<HomeScreen> {
     _getCurrentLocation();
   }
 
+  double _getEstimatedTime(CrowdLevel level) {
+    final random = Random();
+    switch (level) {
+      case CrowdLevel.green:
+        return (5 + random.nextInt(6)).toDouble();
+      case CrowdLevel.yellow:
+        return (15 + random.nextInt(11)).toDouble();
+      case CrowdLevel.orange:
+        return (25 + random.nextInt(11)).toDouble();
+      case CrowdLevel.red:
+        return (40 + random.nextInt(11)).toDouble();
+      case CrowdLevel.unknown:
+      default:
+        return (10 + random.nextInt(6)).toDouble();
+    }
+  }
+
+  Future<String> _getAddressFromLatLng(double lat, double lng) async {
+    try {
+      List<geo.Placemark> placemarks = await geo.placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty) {
+        final place = placemarks.first;
+        return "${place.name}, ${place.locality}, ${place.administrativeArea}";
+      }
+    } catch (e) {
+      print('Error getting address: \$e');
+    }
+    return "Unknown Location";
+  }
+
   Future<void> _getCurrentLocation() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
@@ -55,10 +88,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     setState(() => _currentPosition = position);
 
-    // 🔁 Load initially
     _loadNearbyPlaces("petrol pump", 0);
 
-    // 🔁 Auto-refresh every 2 minutes
     Timer.periodic(Duration(minutes: 2), (_) {
       if (_currentPosition != null) {
         _loadNearbyPlaces("petrol pump", _selectedServiceIndex);
@@ -124,14 +155,27 @@ class _HomeScreenState extends State<HomeScreen> {
             lng: lng,
             apiKey: _apiKey,
           );
-          print("Crowd string for ${place.name}: $crowdString");
+          final crowdLevel = _mapCrowdLevelFromString(crowdString);
+
+          final address = await _getAddressFromLatLng(lat, lng);
 
           final pump = PetrolPump(
             name: place.name,
             location: LatLng(lat, lng),
             distance: distance,
             rating: place.rating?.toDouble(),
-            crowd: _mapCrowdLevelFromString(crowdString),
+            crowd: crowdLevel,
+            imageUrl: (place.photos != null && place.photos!.isNotEmpty)
+                ? "https://maps.googleapis.com/maps/api/place/photo"
+                "?maxwidth=400"
+                "&photoreference=${place.photos!.first.photoReference}"
+                "&key=$_apiKey"
+                : 'assets/images/station.jpg',
+            status: "Open Now",
+            estimatedTime: _getEstimatedTime(crowdLevel),
+            petrolPrice: 104.77,
+            dieselPrice: 90.03,
+            address: address,
           );
 
           nearbyPumps.add(pump);
