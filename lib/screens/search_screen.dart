@@ -184,7 +184,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                                     children: [
                                       const Icon(Icons.star, color: Colors.orange, size: 16),
                                       const SizedBox(width: 2),
-                                      Text("${pump.rating!.toStringAsFixed(1)}", style: const TextStyle(fontSize: 13)),
+                                      Text(pump.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 13)),
                                     ],
                                   ),
                               ],

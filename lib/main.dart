@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
@@ -206,7 +205,6 @@ class OnboardingScreen extends StatelessWidget {
     );
   }
 }
-
 // ----------------------------
 // 3. Auth Screen (Updated with API integration)
 // ----------------------------
@@ -289,61 +287,73 @@ class _AuthScreenState extends State<AuthScreen> {
       setState(() => _isLoading = false);
     }
   }
-@override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Text(
-                isSignIn ? "Welcome Back!" : "Create your account",
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFAF0505),
-                ),
-              ),
-              const SizedBox(height: 24),
-              buildToggleTabs(),
-              const SizedBox(height: 30),
-              buildFormCard(),
-              if (isSignIn)
-                const Padding(
-                  padding: EdgeInsets.only(top: 12),
-                  child: Text("Forgot Password?",
-                      style: TextStyle(color: Color(0xFF7B7B7B))),
-                ),
-              const SizedBox(height: 24),
-              const Text("OR", style: TextStyle(color: Color(0xFF7B7B7B))),
-              const SizedBox(height: 12),
-              buildSocialIcons(),
 
-              // ✅ New "Skip" link added here
-              const SizedBox(height: 20),
-              GestureDetector(
-                onTap: () {
-                  Navigator.pushReplacementNamed(context, '/home');
-                },
-                child: const Text(
-                  "Skip",
-                  style: TextStyle(
-                    color: Color(0xFF7B7B7B),
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Text(
+                  isSignIn ? "Welcome Back!" : "Create your account",
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFFAF0505),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                buildToggleTabs(),
+                const SizedBox(height: 30),
+                buildFormCard(),
+                if (isSignIn)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 12),
+                    child: Text("Forgot Password?",
+                        style: TextStyle(color: Color(0xFF7B7B7B))),
+                  ),
+                const SizedBox(height: 24),
+                const Text("OR", style: TextStyle(color: Color(0xFF7B7B7B))),
+                const SizedBox(height: 12),
+                buildSocialIcons(),
+                const SizedBox(height: 20),
+                // SKIP Button (Updated color)
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 255, 189, 180),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pushReplacementNamed(context, '/home');
+                    },
+                    icon: const Icon(Icons.arrow_forward, color: Colors.red, size: 22),
+                    label: const Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
+
 
   Widget buildToggleTabs() {
     return Container(
@@ -605,4 +615,5 @@ Widget build(BuildContext context) {
       ),
     );
   }
+
 }

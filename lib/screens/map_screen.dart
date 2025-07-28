@@ -195,10 +195,10 @@ class _MapScreenState extends State<MapScreen> {
               distance: distance,
               rating: place.rating?.toDouble(),
               crowd: crowdLevel,
-              imageUrl: (place.photos != null && place.photos!.isNotEmpty)
+              imageUrl: (place.photos.isNotEmpty)
                   ? "https://maps.googleapis.com/maps/api/place/photo"
                   "?maxwidth=400"
-                  "&photoreference=${place.photos!.first.photoReference}"
+                  "&photoreference=${place.photos.first.photoReference}"
                   "&key=$_apiKey"
                   : 'assets/images/station.jpg',
               status: "Open Now",
