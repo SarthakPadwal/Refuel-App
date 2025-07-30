@@ -9,10 +9,8 @@ import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import 'package:dotted_line/dotted_line.dart';
-import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart' as geo;
-
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,7 +46,6 @@ class _HomeScreenState extends State<HomeScreen> {
         return (25 + random.nextInt(11)).toDouble();
       case CrowdLevel.red:
         return (40 + random.nextInt(11)).toDouble();
-      case CrowdLevel.unknown:
       default:
         return (10 + random.nextInt(6)).toDouble();
     }
@@ -62,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
         return "${place.name}, ${place.locality}, ${place.administrativeArea}";
       }
     } catch (e) {
-      print('Error getting address: \$e');
+      print('Error getting address: $e');
     }
     return "Unknown Location";
   }
@@ -156,7 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
             apiKey: _apiKey,
           );
           final crowdLevel = _mapCrowdLevelFromString(crowdString);
-
           final address = await _getAddressFromLatLng(lat, lng);
 
           final pump = PetrolPump(
@@ -165,10 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
             distance: distance,
             rating: place.rating?.toDouble(),
             crowd: crowdLevel,
-            imageUrl: (place.photos.isNotEmpty)
+            imageUrl: (place.photos != null && place.photos!.isNotEmpty)
                 ? "https://maps.googleapis.com/maps/api/place/photo"
                 "?maxwidth=400"
-                "&photoreference=${place.photos.first.photoReference}"
+                "&photoreference=${place.photos!.first.photoReference}"
                 "&key=$_apiKey"
                 : 'assets/images/station.jpg',
             status: "Open Now",
@@ -194,10 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }).toSet();
 
-      setState(() {
-        _markers.addAll(newMarkers);
-      });
-
+      setState(() => _markers.addAll(newMarkers));
       PumpService().setPumps(nearbyPumps);
     }
   }

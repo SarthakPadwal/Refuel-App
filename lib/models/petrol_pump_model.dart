@@ -15,7 +15,7 @@ class PetrolPump {
   final LatLng location;
   final double distance; // in meters
   final double? rating;
-  final double estimatedTime; // in minutes
+  double estimatedTime; // in minutes
   final double petrolPrice;
   final double dieselPrice;
   CrowdLevel? crowd;

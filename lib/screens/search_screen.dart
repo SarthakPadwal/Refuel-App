@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
-import '../screens/petrol_pump_details_screen.dart'; // ✅ Add this import
+import '../screens/petrol_pump_details_screen.dart';
 import 'package:dotted_line/dotted_line.dart';
-//
+
 class SearchAndFilterScreen extends StatefulWidget {
   const SearchAndFilterScreen({super.key});
 
@@ -17,9 +17,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
 
     switch (index) {
       case 0:
@@ -37,19 +35,28 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
     }
   }
 
-  Icon _getCrowdIcon(CrowdLevel? level) {
+  Widget _buildCrowdStatusWidget(CrowdLevel? level) {
+
+    Color color;
+
     switch (level) {
       case CrowdLevel.green:
-        return const Icon(Icons.circle, color: Colors.green, size: 16);
+        color = Colors.green;
+        break;
       case CrowdLevel.yellow:
-        return const Icon(Icons.circle, color: Colors.yellow, size: 16);
+        color = Color(0xFFFFD600);
+        break;
       case CrowdLevel.orange:
-        return const Icon(Icons.circle, color: Colors.orange, size: 16);
+        color = Color(0xFFF57C00);
+        break;
       case CrowdLevel.red:
-        return const Icon(Icons.circle, color: Colors.red, size: 16);
+        color = Colors.red;
+        break;
       default:
-        return const Icon(Icons.help_outline, color: Colors.grey, size: 16);
+        color = Colors.grey;
     }
+
+    return Icon(Icons.groups_rounded, color: color, size: 20);
   }
 
   @override
@@ -58,12 +65,8 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
 
     List<PetrolPump> filteredPumps = _searchQuery.isEmpty
         ? allPumps
-        : allPumps
-        .where((pump) =>
-        pump.name.toLowerCase().contains(_searchQuery.toLowerCase()))
-        .toList();
+        : allPumps.where((pump) => pump.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
-    // Apply selected filter
     if (_selectedFilterIndex == 0) {
       filteredPumps.sort((a, b) => a.distance.compareTo(b.distance));
     } else if (_selectedFilterIndex == 1) {
@@ -126,8 +129,6 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
               onChanged: (value) => setState(() => _searchQuery = value),
             ),
             const SizedBox(height: 22),
-
-            // Filter Row - Scrollable
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -142,13 +143,11 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                 ],
               ),
             ),
-
             const SizedBox(height: 15),
             const Divider(color: Color.fromARGB(255, 186, 186, 186), thickness: 1, indent: 16, endIndent: 16),
             const SizedBox(height: 30),
-
             if (filteredPumps.isEmpty)
-              const Center(child: Text("No stations found.", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)))
+              const Center(child: Text("Wait fetching stations and Crowd", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)))
             else
               Column(
                 children: filteredPumps.map((pump) {
@@ -184,7 +183,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                                     children: [
                                       const Icon(Icons.star, color: Colors.orange, size: 16),
                                       const SizedBox(width: 2),
-                                      Text(pump.rating!.toStringAsFixed(1), style: const TextStyle(fontSize: 13)),
+                                      Text("${pump.rating!.toStringAsFixed(1)}", style: const TextStyle(fontSize: 13)),
                                     ],
                                   ),
                               ],
@@ -197,7 +196,7 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(width: 10),
-                          _getCrowdIcon(pump.crowd),
+                          _buildCrowdStatusWidget(pump.crowd),
                         ],
                       ),
                     ),
@@ -272,3 +271,4 @@ class FilterButton extends StatelessWidget {
     );
   }
 }
+

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
@@ -7,11 +8,19 @@ import 'services/api_service.dart';
 import 'screens/profile_screen.dart';
 import 'screens/saved_screen.dart';
 import 'screens/search_screen.dart';
-
+import 'screens/petrol_pump_details_screen.dart';
+import 'services/bookmark_service.dart';
+import 'models/petrol_pump_model.dart';
+import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const RefuelApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => BookmarkService(),
+      child: const RefuelApp(),
+    ),
+  );
 }
 
 class RefuelApp extends StatelessWidget {
@@ -35,6 +44,10 @@ class RefuelApp extends StatelessWidget {
         '/saved': (context) => const SavedScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/login': (context) => const AuthScreen(),
+        '/details': (context) {
+          final pump = ModalRoute.of(context)!.settings.arguments as PetrolPump;
+          return FuelStationDetailScreen(pump: pump);
+        },
       },
     );
   }

@@ -68,16 +68,16 @@ class _MapScreenState extends State<MapScreen> {
     final random = Random();
     switch (level) {
       case CrowdLevel.green:
-        return (5 + random.nextInt(6)).toDouble(); // 5–10
+        return (5 + random.nextInt(6)).toDouble();
       case CrowdLevel.yellow:
-        return (15 + random.nextInt(11)).toDouble(); // 15–25
+        return (15 + random.nextInt(11)).toDouble();
       case CrowdLevel.orange:
-        return (25 + random.nextInt(11)).toDouble(); // 25–35
+        return (25 + random.nextInt(11)).toDouble();
       case CrowdLevel.red:
-        return (40 + random.nextInt(11)).toDouble(); // 40–50
+        return (40 + random.nextInt(11)).toDouble();
       case CrowdLevel.unknown:
       default:
-        return (10 + random.nextInt(6)).toDouble(); // 10–15
+        return (10 + random.nextInt(6)).toDouble();
     }
   }
 
@@ -169,13 +169,6 @@ class _MapScreenState extends State<MapScreen> {
         );
 
         if (distance <= 3000) {
-          final crowdString = await ApiService.getCrowdLevelMultiDirection(
-            lat: lat,
-            lng: lng,
-            apiKey: _apiKey,
-          );
-
-          final crowdLevel = _mapCrowdLevelFromString(crowdString);
           final address = await _getAddressFromLatLng(lat, lng);
 
           newMarkers.add(Marker(
@@ -188,26 +181,29 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ));
 
-          newPumps.add(
-            PetrolPump(
-              name: place.name ?? 'Unknown',
-              location: LatLng(lat, lng),
-              distance: distance,
-              rating: place.rating?.toDouble(),
-              crowd: crowdLevel,
-              imageUrl: (place.photos.isNotEmpty)
-                  ? "https://maps.googleapis.com/maps/api/place/photo"
-                  "?maxwidth=400"
-                  "&photoreference=${place.photos.first.photoReference}"
-                  "&key=$_apiKey"
-                  : 'assets/images/station.jpg',
-              status: "Open Now",
-              estimatedTime: _getEstimatedTime(crowdLevel),
-              petrolPrice: 104.77,
-              dieselPrice: 90.03,
-              address: address,
-            ),
+          final pump = PetrolPump(
+            name: place.name ?? 'Unknown',
+            location: LatLng(lat, lng),
+            distance: distance,
+            rating: place.rating?.toDouble(),
+            crowd: CrowdLevel.unknown, // initially unknown
+            imageUrl: (place.photos != null && place.photos!.isNotEmpty)
+                ? "https://maps.googleapis.com/maps/api/place/photo"
+                "?maxwidth=400"
+                "&photoreference=${place.photos!.first.photoReference}"
+                "&key=$_apiKey"
+                : 'assets/images/station.jpg',
+            status: "Open Now",
+            estimatedTime: 0,
+            petrolPrice: 104.77,
+            dieselPrice: 90.03,
+            address: address,
           );
+
+          newPumps.add(pump);
+
+          // Fetch crowd asynchronously
+          _fetchCrowdAsync(pump);
         }
       }
 
@@ -219,6 +215,20 @@ class _MapScreenState extends State<MapScreen> {
     } else {
       debugPrint("⚠️ No nearby results found for $placeType");
     }
+  }
+
+  Future<void> _fetchCrowdAsync(PetrolPump pump) async {
+    final crowdString = await ApiService.getCrowdLevelMultiDirection(
+      lat: pump.location.latitude,
+      lng: pump.location.longitude,
+      apiKey: _apiKey,
+    );
+
+    final crowdLevel = _mapCrowdLevelFromString(crowdString);
+    pump.crowd = crowdLevel;
+    pump.estimatedTime = _getEstimatedTime(crowdLevel);
+
+    setState(() {}); // trigger UI update
   }
 
   void _onItemTapped(int index) {
@@ -319,20 +329,8 @@ class _MapScreenState extends State<MapScreen> {
                 target: _mapCenter!,
                 zoom: 13.5,
               ),
-              onCameraMove: (position) {
-                _mapCenter = position.target;
-                setState(() {
-                  _circle = Circle(
-                    circleId: const CircleId('user_radius'),
-                    center: _mapCenter!,
-                    radius: 3000,
-                    strokeColor: Colors.red,
-                    strokeWidth: 2,
-                    fillColor: Colors.red.withOpacity(0.1),
-                  );
-                });
-              },
-              onCameraIdle: () => _loadNearbyPlaces(_serviceTypes[_selectedServiceIndex]),
+              onCameraIdle: () =>
+                  _loadNearbyPlaces(_serviceTypes[_selectedServiceIndex]),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               markers: _markers,
