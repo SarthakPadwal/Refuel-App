@@ -28,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final String _apiKey = 'AIzaSyAYk6MBrQZlFU6hO-iYprSOF8wUwkgbTMA';
   Circle? _circle;
   final double _radius = 3000;
+  bool _isFirstLoad = true;
 
   @override
   void initState() {
@@ -87,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     _loadNearbyPlaces("petrol pump", 0);
 
-    Timer.periodic(Duration(minutes: 2), (_) {
+    Timer.periodic(const Duration(minutes: 2), (_) {
       if (_currentPosition != null) {
         _loadNearbyPlaces("petrol pump", _selectedServiceIndex);
       }
@@ -95,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   CrowdLevel _mapCrowdLevelFromString(String level) {
-    switch (level) {
+    switch (level.toLowerCase()) {
       case 'green':
         return CrowdLevel.green;
       case 'yellow':
@@ -114,7 +115,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final places = GoogleMapsPlaces(apiKey: _apiKey);
     final result = await places.searchNearbyWithRadius(
-      Location(lat: _currentPosition!.latitude, lng: _currentPosition!.longitude),
+      Location(
+        lat: _currentPosition!.latitude,
+        lng: _currentPosition!.longitude,
+      ),
       _radius.toInt(),
       keyword: placeType,
     );
@@ -124,7 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _markers.clear();
       _circle = Circle(
         circleId: const CircleId("radius_circle"),
-        center: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+        center: LatLng(
+          _currentPosition!.latitude,
+          _currentPosition!.longitude,
+        ),
         radius: _radius,
         strokeColor: Colors.red,
         strokeWidth: 2,
@@ -147,12 +154,18 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
         if (distance <= _radius) {
-          final crowdString = await ApiService.getCrowdLevelMultiDirection(
-            lat: lat,
-            lng: lng,
-            apiKey: _apiKey,
-          );
-          final crowdLevel = _mapCrowdLevelFromString(crowdString);
+          CrowdLevel crowdLevel = CrowdLevel.unknown;
+          try {
+            final crowdString = await ApiService.getCrowdLevelMultiDirection(
+              lat: lat,
+              lng: lng,
+              apiKey: _apiKey,
+            );
+            crowdLevel = _mapCrowdLevelFromString(crowdString);
+          } catch (e) {
+            print("⚠️ Crowd fetch failed for ${place.name}: $e");
+          }
+
           final address = await _getAddressFromLatLng(lat, lng);
 
           final pump = PetrolPump(
@@ -172,10 +185,19 @@ class _HomeScreenState extends State<HomeScreen> {
             petrolPrice: 104.77,
             dieselPrice: 90.03,
             address: address,
+            fullAddress: "",
+            placeId: place.placeId ?? "",
           );
 
           nearbyPumps.add(pump);
         }
+      }
+
+      PumpService().setPumps(nearbyPumps);
+
+      if (_isFirstLoad) {
+        await PumpService().updateFullAddresses(apiKey: _apiKey);
+        _isFirstLoad = false;
       }
 
       final newMarkers = nearbyPumps.map((pump) {
@@ -185,13 +207,12 @@ class _HomeScreenState extends State<HomeScreen> {
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
           infoWindow: InfoWindow(
             title: pump.name,
-            snippet: _crowdDescription(pump.crowd!),
+            snippet: _crowdDescription(pump.crowd ?? CrowdLevel.unknown),
           ),
         );
       }).toSet();
 
       setState(() => _markers.addAll(newMarkers));
-      PumpService().setPumps(nearbyPumps);
     }
   }
 

@@ -29,9 +29,9 @@ class PumpService {
           lng: pump.location.longitude,
           apiKey: apiKey,
         );
-        pump.crowd = parseCrowdLevel(crowdLevelString); // ✅ Convert string to enum
+        pump.crowd = parseCrowdLevel(crowdLevelString);
       } catch (e) {
-        print("Failed to get crowd level for ${pump.name}: $e");
+        print("❌ Failed to get crowd level for ${pump.name}: $e");
         pump.crowd = null;
       }
     }
@@ -50,6 +50,46 @@ class PumpService {
         return CrowdLevel.red;
       default:
         return null;
+    }
+  }
+
+  /// 📍 Fetch full formatted address using Google Places Details API
+  Future<void> updateFullAddresses({
+    required String apiKey,
+  }) async {
+    for (var pump in _pumps) {
+      if (pump.placeId == null || pump.placeId!.isEmpty) {
+        print("⏩ Skipping ${pump.name} — no placeId available");
+        continue;
+      }
+
+      try {
+        final detailsUrl =
+            "https://maps.googleapis.com/maps/api/place/details/json"
+            "?place_id=${pump.placeId}&fields=formatted_address&key=$apiKey";
+
+        final response = await ApiService.get(detailsUrl);
+
+        if (response['status'] != "OK") {
+          print("⚠️ Google Details API failed for ${pump.name}: ${response['status']}");
+          pump.fullAddress = pump.address;
+          continue;
+        }
+
+        final json = response['result'];
+        final formattedAddress = json['formatted_address'];
+
+        if (formattedAddress != null && formattedAddress.isNotEmpty) {
+          pump.fullAddress = formattedAddress;
+        } else {
+          print("⚠️ No formatted_address found for ${pump.name}");
+          pump.fullAddress = pump.address;
+        }
+
+      } catch (e) {
+        print("❌ Exception getting address for ${pump.name}: $e");
+        pump.fullAddress = pump.address;
+      }
     }
   }
 }

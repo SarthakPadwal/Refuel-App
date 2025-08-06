@@ -28,6 +28,7 @@ class _MapScreenState extends State<MapScreen> {
   int _selectedIndex = 1;
   int _selectedServiceIndex = 0;
   final TextEditingController _searchController = TextEditingController();
+  Timer? _crowdUpdateTimer;
 
   final List<String> _serviceTypes = [
     "petrol pump",
@@ -47,6 +48,15 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _initLocationAndPlaces();
+    _crowdUpdateTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      _updateCrowdLevels();
+    });
+  }
+
+  @override
+  void dispose() {
+    _crowdUpdateTimer?.cancel();
+    super.dispose();
   }
 
   CrowdLevel _mapCrowdLevelFromString(String level) {
@@ -75,7 +85,6 @@ class _MapScreenState extends State<MapScreen> {
         return (25 + random.nextInt(11)).toDouble();
       case CrowdLevel.red:
         return (40 + random.nextInt(11)).toDouble();
-      case CrowdLevel.unknown:
       default:
         return (10 + random.nextInt(6)).toDouble();
     }
@@ -89,7 +98,7 @@ class _MapScreenState extends State<MapScreen> {
         return "${place.name}, ${place.locality}, ${place.administrativeArea}";
       }
     } catch (e) {
-      debugPrint("❌ Failed to get address: $e");
+      debugPrint("❌ Address error: $e");
     }
     return "Unknown location";
   }
@@ -107,15 +116,10 @@ class _MapScreenState extends State<MapScreen> {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) return;
       }
-
-      if (permission == LocationPermission.deniedForever) {
-        await Geolocator.openAppSettings();
-        return;
-      }
+      if (permission == LocationPermission.deniedForever) return;
 
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+          desiredAccuracy: LocationAccuracy.high);
 
       _mapCenter = LatLng(position.latitude, position.longitude);
 
@@ -135,14 +139,13 @@ class _MapScreenState extends State<MapScreen> {
     } catch (e) {
       debugPrint('❌ Location error: $e');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadNearbyPlaces(String placeType) async {
     if (_mapCenter == null) return;
+
     final places = GoogleMapsPlaces(apiKey: _apiKey);
     final result = await places.searchNearbyWithRadius(
       Location(lat: _mapCenter!.latitude, lng: _mapCenter!.longitude),
@@ -150,14 +153,11 @@ class _MapScreenState extends State<MapScreen> {
       keyword: placeType,
     );
 
-    setState(() {
-      _markers.clear();
-    });
+    _markers.clear();
+    final newMarkers = <Marker>{};
+    final newPumps = <PetrolPump>[];
 
     if (result.status == "OK" && result.results.isNotEmpty) {
-      final newMarkers = <Marker>{};
-      final newPumps = <PetrolPump>[];
-
       for (var place in result.results) {
         final lat = place.geometry!.location.lat;
         final lng = place.geometry!.location.lng;
@@ -171,22 +171,12 @@ class _MapScreenState extends State<MapScreen> {
         if (distance <= 3000) {
           final address = await _getAddressFromLatLng(lat, lng);
 
-          newMarkers.add(Marker(
-            markerId: MarkerId(place.placeId),
-            position: LatLng(lat, lng),
-            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-            infoWindow: InfoWindow(
-              title: place.name,
-              snippet: address,
-            ),
-          ));
-
           final pump = PetrolPump(
             name: place.name ?? 'Unknown',
             location: LatLng(lat, lng),
             distance: distance,
             rating: place.rating?.toDouble(),
-            crowd: CrowdLevel.unknown, // initially unknown
+            crowd: CrowdLevel.unknown,
             imageUrl: (place.photos != null && place.photos!.isNotEmpty)
                 ? "https://maps.googleapis.com/maps/api/place/photo"
                 "?maxwidth=400"
@@ -200,40 +190,52 @@ class _MapScreenState extends State<MapScreen> {
             address: address,
           );
 
-          newPumps.add(pump);
+          newMarkers.add(
+            Marker(
+              markerId: MarkerId(place.placeId),
+              position: LatLng(lat, lng),
+              icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+              infoWindow: InfoWindow(title: place.name, snippet: address),
+            ),
+          );
 
-          // Fetch crowd asynchronously
-          _fetchCrowdAsync(pump);
+          newPumps.add(pump);
+          _fetchCrowdAsync(pump); // async crowd load
         }
       }
 
       PumpService().setPumps(newPumps);
-
       setState(() {
         _markers.addAll(newMarkers);
       });
-    } else {
-      debugPrint("⚠️ No nearby results found for $placeType");
     }
   }
 
   Future<void> _fetchCrowdAsync(PetrolPump pump) async {
-    final crowdString = await ApiService.getCrowdLevelMultiDirection(
-      lat: pump.location.latitude,
-      lng: pump.location.longitude,
-      apiKey: _apiKey,
-    );
+    try {
+      final crowdString = await ApiService.getCrowdLevelMultiDirection(
+        lat: pump.location.latitude,
+        lng: pump.location.longitude,
+        apiKey: _apiKey,
+      );
+      final crowdLevel = _mapCrowdLevelFromString(crowdString);
+      pump.crowd = crowdLevel;
+      pump.estimatedTime = _getEstimatedTime(crowdLevel);
+      setState(() {}); // refresh UI
+    } catch (e) {
+      debugPrint("❌ Crowd fetch failed for ${pump.name}: $e");
+    }
+  }
 
-    final crowdLevel = _mapCrowdLevelFromString(crowdString);
-    pump.crowd = crowdLevel;
-    pump.estimatedTime = _getEstimatedTime(crowdLevel);
-
-    setState(() {}); // trigger UI update
+  Future<void> _updateCrowdLevels() async {
+    final pumps = PumpService().pumps;
+    for (final pump in pumps) {
+      await _fetchCrowdAsync(pump);
+    }
   }
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-
     setState(() => _selectedIndex = index);
 
     switch (index) {
@@ -252,7 +254,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget buildFilterButton(String label, int index) {
-    bool isSelected = _selectedServiceIndex == index;
+    final bool isSelected = _selectedServiceIndex == index;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4.0),
       child: ElevatedButton(
@@ -329,8 +331,6 @@ class _MapScreenState extends State<MapScreen> {
                 target: _mapCenter!,
                 zoom: 13.5,
               ),
-              onCameraIdle: () =>
-                  _loadNearbyPlaces(_serviceTypes[_selectedServiceIndex]),
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
               markers: _markers,
@@ -340,44 +340,17 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 1),
-            child: DottedLine(
-              dashLength: 7,
-              dashGapLength: 4,
-              lineThickness: 1.5,
-              dashColor: Color(0xFFFF725E),
-            ),
-          ),
-          BottomNavigationBar(
-            backgroundColor: Colors.white,
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: Colors.orange,
-            unselectedItemColor: Colors.grey,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_outlined),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map_outlined),
-                label: 'Map',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.bookmark_border),
-                label: 'Saved',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person_outline),
-                label: 'Profile',
-              ),
-            ],
-          ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: Colors.orange,
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
+          BottomNavigationBarItem(icon: Icon(Icons.bookmark_border), label: 'Saved'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );

@@ -4,6 +4,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math';
 
 class ApiService {
+
+  static Future<Map<String, dynamic>> get(String url) async {
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body) as Map<String, dynamic>;
+      } else {
+        throw Exception("Failed with status: ${response.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("GET request failed: $e");
+    }
+  }
+
   static const String baseUrl = 'http://192.168.0.101:5000/api/auth';
 
   static Future<Map<String, String>> getHeaders() async {

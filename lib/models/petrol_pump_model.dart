@@ -19,7 +19,9 @@ class PetrolPump {
   final double petrolPrice;
   final double dieselPrice;
   CrowdLevel? crowd;
-  final String address;
+  final String address; // short address, e.g., locality
+  String? fullAddress;  // complete formatted address, nullable
+  final String? placeId; // added for Google Place Details API
 
   PetrolPump({
     required this.name,
@@ -33,6 +35,8 @@ class PetrolPump {
     required this.dieselPrice,
     this.crowd,
     required this.address,
+    this.fullAddress,
+    this.placeId,
   });
 
   void setCrowdLevelFromString(String crowdString) {

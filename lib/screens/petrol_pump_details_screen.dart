@@ -171,7 +171,7 @@ class FuelStationDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      pump.address,
+                      pump.fullAddress.toString(),
                       style: const TextStyle(fontSize: 14, color: Color.fromARGB(255, 120, 120, 120)),
                     ),
                     const SizedBox(height: 14),
