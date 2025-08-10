@@ -7,6 +7,8 @@ enum CrowdLevel {
   red,
   unknown,
 }
+enum ServiceType { petrol, cng, ev, mechanic }
+
 
 class PetrolPump {
   final String name;
@@ -18,10 +20,12 @@ class PetrolPump {
   double estimatedTime; // in minutes
   final double petrolPrice;
   final double dieselPrice;
+  final double cngPrice;
   CrowdLevel? crowd;
   final String address; // short address, e.g., locality
   String? fullAddress;  // complete formatted address, nullable
-  final String? placeId; // added for Google Place Details API
+  final String? placeId;
+  final ServiceType serviceType;
 
   PetrolPump({
     required this.name,
@@ -34,9 +38,11 @@ class PetrolPump {
     required this.petrolPrice,
     required this.dieselPrice,
     this.crowd,
+    required this.cngPrice,
     required this.address,
     this.fullAddress,
     this.placeId,
+    required this.serviceType,
   });
 
   void setCrowdLevelFromString(String crowdString) {

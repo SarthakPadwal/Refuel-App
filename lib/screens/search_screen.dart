@@ -153,11 +153,11 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                 children: filteredPumps.map((pump) {
                   return GestureDetector(
                     onTap: () {
-                      Navigator.push(
+                      print("🧪 Navigating with pump: ${pump.name}, type: ${pump.serviceType}");
+                      Navigator.pushNamed(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => FuelStationDetailScreen(pump: pump),
-                        ),
+                        '/details',
+                        arguments: pump,
                       );
                     },
                     child: Container(
@@ -196,7 +196,12 @@ class _SearchAndFilterScreenState extends State<SearchAndFilterScreen> {
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(width: 10),
-                          _buildCrowdStatusWidget(pump.crowd),
+
+                          // ✅ Show crowd icon only for Petrol & CNG
+                          if ((pump.serviceType?.toString().toLowerCase() ?? "").contains("petrol") ||
+                              (pump.serviceType?.toString().toLowerCase() ?? "").contains("cng"))
+                            _buildCrowdStatusWidget(pump.crowd),
+
                         ],
                       ),
                     ),

@@ -5,6 +5,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:dotted_line/dotted_line.dart';
+import 'dart:async';
+
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,8 +17,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedIndex = 3;
-  String userName = "Loading...";
-  String userEmail = "Loading...";
+  String userName = "Not provided";
+  String userEmail = "Not provided";
   String userPhone = "Not provided";
   bool isLoading = true;
 
@@ -53,12 +55,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
-
   Future<void> _fetchUserProfile() async {
     try {
-      final response = await http.get(
+      final response = await http
+          .get(
         Uri.parse('${ApiService.baseUrl}/profile'),
         headers: await ApiService.getHeaders(),
+      )
+          .timeout(
+        const Duration(seconds: 3), // ⏱ set your timeout here
+        onTimeout: () {
+          throw TimeoutException("Profile request timed out");
+        },
       );
 
       if (response.statusCode == 200) {
@@ -84,6 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
 
   Future<void> _logout() async {
     try {

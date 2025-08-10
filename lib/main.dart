@@ -12,6 +12,10 @@ import 'screens/petrol_pump_details_screen.dart';
 import 'services/bookmark_service.dart';
 import 'models/petrol_pump_model.dart';
 import 'package:provider/provider.dart';
+import 'screens/cng_pump_details_screen.dart';
+import 'screens/ev_station_details_screen.dart';
+import 'screens/mechanic_details_screen.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,7 +26,6 @@ void main() async {
     ),
   );
 }
-
 class RefuelApp extends StatelessWidget {
   const RefuelApp({super.key});
 
@@ -44,14 +47,53 @@ class RefuelApp extends StatelessWidget {
         '/saved': (context) => const SavedScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/login': (context) => const AuthScreen(),
-        '/details': (context) {
-          final pump = ModalRoute.of(context)!.settings.arguments as PetrolPump;
-          return FuelStationDetailScreen(pump: pump);
-        },
+      },
+      onGenerateRoute: (settings) {
+        // Handle dynamic route for /details
+        if (settings.name == '/details') {
+          final pump = settings.arguments as PetrolPump;
+          print('Pump Type: ${pump.serviceType}');
+
+          switch (pump.serviceType) {
+            case ServiceType.petrol:
+              return MaterialPageRoute(
+                builder: (_) => FuelStationDetailScreen(pump: pump),
+              );
+            case ServiceType.cng:
+              return MaterialPageRoute(
+                builder: (_) => CngStationDetailScreen(pump: pump),
+              );
+            case ServiceType.ev:
+              return MaterialPageRoute(
+                builder: (_) => EvStationDetailScreen(pump: pump),
+              );
+            case ServiceType.mechanic:
+              return MaterialPageRoute(
+                builder: (_) => MechanicDetailScreen(pump: pump),
+              );
+            default:
+              return _errorRoute();
+          }
+        }
+
+        // Fallback for unknown routes
+        return _errorRoute();
       },
     );
   }
+
+  /// Error route fallback widget
+  MaterialPageRoute _errorRoute() {
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: const Text('Error')),
+        body: const Center(child: Text('Page not found')),
+      ),
+    );
+  }
+
 }
+
 
 // ✅ This runs first and decides which screen to show
 class AppInitializer extends StatelessWidget {

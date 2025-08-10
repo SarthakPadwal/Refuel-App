@@ -1,3 +1,5 @@
+// 🛠️ NOTE: This assumes your models and navigation logic are already updated to support `serviceType`
+
 import 'package:Refuel/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -9,7 +11,6 @@ import 'package:google_maps_webservice/places.dart';
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import 'package:dotted_line/dotted_line.dart';
-import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart' as geo;
 
 class HomeScreen extends StatefulWidget {
@@ -85,14 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     setState(() => _currentPosition = position);
-
     _loadNearbyPlaces("petrol pump", 0);
-
-    Timer.periodic(const Duration(minutes: 2), (_) {
-      if (_currentPosition != null) {
-        _loadNearbyPlaces("petrol pump", _selectedServiceIndex);
-      }
-    });
   }
 
   CrowdLevel _mapCrowdLevelFromString(String level) {
@@ -113,6 +107,21 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadNearbyPlaces(String placeType, int index) async {
     if (_currentPosition == null) return;
 
+    ServiceType _getServiceTypeByIndex(int index) {
+      switch (index) {
+        case 0:
+          return ServiceType.petrol;
+        case 1:
+          return ServiceType.cng;
+        case 2:
+          return ServiceType.ev;
+        case 3:
+          return ServiceType.mechanic;
+        default:
+          return ServiceType.cng; // fallback
+      }
+    }
+
     final places = GoogleMapsPlaces(apiKey: _apiKey);
     final result = await places.searchNearbyWithRadius(
       Location(
@@ -128,10 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _markers.clear();
       _circle = Circle(
         circleId: const CircleId("radius_circle"),
-        center: LatLng(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-        ),
+        center: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
         radius: _radius,
         strokeColor: Colors.red,
         strokeWidth: 2,
@@ -145,7 +151,6 @@ class _HomeScreenState extends State<HomeScreen> {
       for (final place in result.results) {
         final lat = place.geometry!.location.lat;
         final lng = place.geometry!.location.lng;
-
         final distance = Geolocator.distanceBetween(
           _currentPosition!.latitude,
           _currentPosition!.longitude,
@@ -184,9 +189,11 @@ class _HomeScreenState extends State<HomeScreen> {
             estimatedTime: _getEstimatedTime(crowdLevel),
             petrolPrice: 104.77,
             dieselPrice: 90.03,
+            cngPrice: 77,
             address: address,
             fullAddress: "",
             placeId: place.placeId ?? "",
+            serviceType: _getServiceTypeByIndex(index),
           );
 
           nearbyPumps.add(pump);
@@ -208,9 +215,14 @@ class _HomeScreenState extends State<HomeScreen> {
           infoWindow: InfoWindow(
             title: pump.name,
             snippet: _crowdDescription(pump.crowd ?? CrowdLevel.unknown),
+            onTap: () {
+              // print("🧪 Navigating with pump: ${pump.name}, type: ${pump.serviceType}");
+              Navigator.of(context).pushNamed('/details', arguments: pump);
+            },
           ),
         );
       }).toSet();
+
 
       setState(() => _markers.addAll(newMarkers));
     }
@@ -233,7 +245,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
-
     setState(() => _selectedIndex = index);
 
     switch (index) {
@@ -272,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Row(
                     children: const [
                       Icon(Icons.location_pin, color: Color(0xFFAF0505), size: 16),
-                      SizedBox(width: 6, height: 35),
+                      SizedBox(width: 6),
                       Text("GPM, Bandra", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFAF0505))),
                     ],
                   ),
@@ -317,14 +328,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   Row(
                     children: [
                       buildOption(Icons.ev_station, "EV", Colors.black, 2, () => _loadNearbyPlaces("electric vehicle charging station", 2)),
-                      buildOption(Icons.build, "Mechanic Service", Colors.black, 3, () => _loadNearbyPlaces("car repair", 3)),
+                      buildOption(Icons.build, "Mechanic", Colors.black, 3, () => _loadNearbyPlaces("car repair", 3)),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const Text(" Map", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25)),
+            const Text("Map", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25)),
             const SizedBox(height: 20),
             SizedBox(
               height: 250,

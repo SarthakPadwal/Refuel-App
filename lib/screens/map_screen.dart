@@ -1,3 +1,5 @@
+
+// IMPORTS
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -5,11 +7,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_webservice/places.dart';
 import 'package:geocoding/geocoding.dart' as geo;
+
 import '../services/pump_service.dart';
 import '../models/petrol_pump_model.dart';
 import '../services/api_service.dart';
 import 'package:dotted_line/dotted_line.dart';
 
+// MapScreen START
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
@@ -29,6 +33,7 @@ class _MapScreenState extends State<MapScreen> {
   int _selectedServiceIndex = 0;
   final TextEditingController _searchController = TextEditingController();
   Timer? _crowdUpdateTimer;
+  bool _isFirstLoad = true;
 
   final List<String> _serviceTypes = [
     "petrol pump",
@@ -42,6 +47,13 @@ class _MapScreenState extends State<MapScreen> {
     "CNG",
     "EV",
     "Mechanic"
+  ];
+
+  final List<ServiceType> _serviceEnums = [
+    ServiceType.petrol,
+    ServiceType.cng,
+    ServiceType.ev,
+    ServiceType.mechanic,
   ];
 
   @override
@@ -90,18 +102,20 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+
   Future<String> _getAddressFromLatLng(double lat, double lng) async {
     try {
-      final placemarks = await geo.placemarkFromCoordinates(lat, lng);
+      List<geo.Placemark> placemarks = await geo.placemarkFromCoordinates(lat, lng);
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
         return "${place.name}, ${place.locality}, ${place.administrativeArea}";
       }
     } catch (e) {
-      debugPrint("❌ Address error: $e");
+      print('Error getting address: $e');
     }
-    return "Unknown location";
+    return "Unknown Location";
   }
+
 
   Future<void> _initLocationAndPlaces() async {
     try {
@@ -170,6 +184,7 @@ class _MapScreenState extends State<MapScreen> {
 
         if (distance <= 3000) {
           final address = await _getAddressFromLatLng(lat, lng);
+          print("📫 Address for ${place.name}: $address");
 
           final pump = PetrolPump(
             name: place.name ?? 'Unknown',
@@ -187,7 +202,11 @@ class _MapScreenState extends State<MapScreen> {
             estimatedTime: 0,
             petrolPrice: 104.77,
             dieselPrice: 90.03,
+            cngPrice: 77,
             address: address,
+            fullAddress: "",
+            placeId: place.placeId ?? "",
+            serviceType: _serviceEnums[_selectedServiceIndex], // ✅
           );
 
           newMarkers.add(
@@ -195,16 +214,28 @@ class _MapScreenState extends State<MapScreen> {
               markerId: MarkerId(place.placeId),
               position: LatLng(lat, lng),
               icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-              infoWindow: InfoWindow(title: place.name, snippet: address),
+              infoWindow: InfoWindow(
+                title: place.name,
+                snippet: address,
+                onTap: () {
+                  Navigator.of(context).pushNamed('/details', arguments: pump);
+                },
+              ),
             ),
           );
 
           newPumps.add(pump);
-          _fetchCrowdAsync(pump); // async crowd load
+          _fetchCrowdAsync(pump);
         }
       }
 
       PumpService().setPumps(newPumps);
+
+      if (_isFirstLoad) {
+        await PumpService().updateFullAddresses(apiKey: _apiKey);
+        _isFirstLoad = false;
+      }
+
       setState(() {
         _markers.addAll(newMarkers);
       });
@@ -221,7 +252,7 @@ class _MapScreenState extends State<MapScreen> {
       final crowdLevel = _mapCrowdLevelFromString(crowdString);
       pump.crowd = crowdLevel;
       pump.estimatedTime = _getEstimatedTime(crowdLevel);
-      setState(() {}); // refresh UI
+      setState(() {});
     } catch (e) {
       debugPrint("❌ Crowd fetch failed for ${pump.name}: $e");
     }
